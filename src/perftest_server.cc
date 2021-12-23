@@ -184,6 +184,39 @@ Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTe
 	return Status::OK;
 }
 
+bool doubleBuffer = true;
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandWriteResult, niPerfTest::TestSidebandReadParameters>* stream)
+{
+    uint8_t* buffer = new uint8_t[16 * 1024 * 1024];
+    TestSidebandReadParameters request;
+    if (doubleBuffer)
+    {
+        auto location = WriteSidebandData("sharedmemory", "buffer_a", buffer, request.num_samples());
+        while (stream->Read(&request))
+        {
+            if (request.use_double_buffer())
+            {
+                TestSidebandWriteResult response;
+                response.set_sideband_location(location);
+                stream->Write(response);
+                auto usageId = location == "bufer_a" ? "buffer_b" : "buffer_a";
+                auto location = WriteSidebandData("sharedmemory", usageId, buffer, request.num_samples());
+            }
+            else
+            {
+                auto location = WriteSidebandData("sharedmemory", "buffer_a", buffer, request.num_samples());
+                TestSidebandWriteResult response;
+                response.set_sideband_location(location);
+                stream->Write(response);
+            }
+        }
+    }
+    return Status::OK;
+}
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 string GetServerAddress(int argc, char** argv)
@@ -296,8 +329,8 @@ std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv
 void RunServer(int argc, char **argv, const char* server_address)
 {
     // Init gRPC
-    grpc_init();
-    grpc_timer_manager_set_threading(false);
+    //grpc_init();
+    //grpc_timer_manager_set_threading(false);
     // grpc_core::Executor::SetThreadingDefault(false);
     // grpc_core::Executor::SetThreadingAll(false);
 
@@ -331,10 +364,14 @@ void RunServer(int argc, char **argv, const char* server_address)
 	server->Wait();
 }
 
+void InitDetours();
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    //InitDetours();
+
     //grpc_init();
     //grpc_timer_manager_set_threading(false);
     //grpc_core::Executor::SetThreadingDefault(false);
@@ -378,30 +415,59 @@ int main(int argc, char **argv)
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // localhost testing
-    auto target_str = std::string("localhost");
-    auto creds = grpc::InsecureChannelCredentials();
-    auto port = ":50051";
-    ::grpc::ChannelArguments args;
-    args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    // auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    
-    // inprocess server
-    //auto client = new NIPerfTestClient(_inProcServer);
+    //{
+    //    auto target_str = std::string("localhost");
+    //    auto creds = grpc::InsecureChannelCredentials();
+    //    auto port = ":50051";
+    //    ::grpc::ChannelArguments args;
+    //    args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
+    //    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
+    //    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
 
-    // auto result = client->Init(42);
-    // cout << "Init result: " << result << endl;
-    // result = client->Init(43);
-    // cout << "Init result: " << result << endl;
-    // result = client->Init(44);
-    // cout << "Init result: " << result << endl;
+    //    // inprocess server
+    //    auto client = new NIPerfTestClient(_inProcServer);
 
-    // cout << "Start streaming tests" << endl;
-    //PerformStreamingTest(*client, 100000);
+    //    auto result = client->Init(42);
+    //    cout << "Init result: " << result << endl;
+    //    result = client->Init(43);
+    //    cout << "Init result: " << result << endl;
+    //    result = client->Init(44);
+    //    cout << "Init result: " << result << endl;
 
-    //PerformLatencyStreamTest(*client, "streamlatency1.txt");
-    //cout << "Performing streaming test" << endl;
-    //PerformStreamingTest(*client, 100000);
+    //    cout << "Start streaming tests" << endl;
+    //    PerformStreamingTest(*client, 100000);
+
+    //    PerformLatencyStreamTest(*client, "streamlatency1.txt");
+    //    cout << "Performing streaming test" << endl;
+    //    PerformStreamingTest(*client, 100000);
+    //}
+
+    // {
+    //     auto target_str = std::string("localhost");
+    //     auto creds = grpc::InsecureChannelCredentials();
+    //     auto port = ":50051";
+    //     ::grpc::ChannelArguments args;
+    //     args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
+    //     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
+    //     // auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
+
+    //     // inprocess server
+    //     //auto client = new NIPerfTestClient(_inProcServer);
+
+    //     auto result = client->Init(42);
+    //     cout << "Init result: " << result << endl;
+    //     result = client->Init(43);
+    //     cout << "Init result: " << result << endl;
+    //     result = client->Init(44);
+    //     cout << "Init result: " << result << endl;
+
+    //     cout << "Start streaming tests" << endl;
+    //     PerformStreamingTest(*client, 200000);
+
+    //     //PerformLatencyStreamTest(*client, "streamlatency1.txt");
+    //     //cout << "Performing streaming test" << endl;
+    //     PerformStreamingTest(*client, 100000);
+    // }
     
     for (auto t: threads)
     {

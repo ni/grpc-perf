@@ -56,3 +56,9 @@ void DisableTracing();
 void TracingOff();
 void TracingOn();
 void TraceMarker(const char* marker);
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+std::string WriteSidebandData(const std::string& strategy, const std::string& usageId, uint8_t* bytes, int bytecount);
+void ReadSidebandData(const std::string& location, uint8_t* bytes, int bufferSize, int* numBytesRead);
+void SetFastMemcpy(bool fastMemcpy);

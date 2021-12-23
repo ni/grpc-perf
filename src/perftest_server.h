@@ -42,4 +42,5 @@ public:
     Status ReadContinuously(ServerContext* context, const niPerfTest::ReadContinuouslyParameters* request, grpc::ServerWriter<niPerfTest::ReadContinuouslyResult>* writer) override;
     Status TestWrite(ServerContext* context, const niPerfTest::TestWriteParameters* request, niPerfTest::TestWriteResult* response) override;
     Status TestWriteContinuously(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestWriteResult, niPerfTest::TestWriteParameters>* stream) override;
+    Status TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandWriteResult, niPerfTest::TestSidebandReadParameters>* stream) override;
 };

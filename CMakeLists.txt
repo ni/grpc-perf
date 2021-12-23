@@ -71,6 +71,7 @@ add_executable(perftest_server
   src/perftest_server.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/user_mode_networking.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   )
@@ -91,6 +92,21 @@ add_executable(perftest_client
   ${perftest_grpc_srcs}
   )
 target_link_libraries(perftest_client
+   ${_REFLECTION}
+   ${_GRPC_GRPCPP}
+   ${_PROTOBUF_LIBPROTOBUF})
+
+#----------------------------------------------------------------------
+# Simple proto specific proxy
+# Goal is to test what perf of a proxy could be
+#----------------------------------------------------------------------
+add_executable(perftest_proxy
+  src/proxy_client.cc
+  src/proxy_server.cc
+  ${perftest_proto_srcs}
+  ${perftest_grpc_srcs}
+  )
+target_link_libraries(perftest_proxy
    ${_REFLECTION}
    ${_GRPC_GRPCPP}
    ${_PROTOBUF_LIBPROTOBUF})

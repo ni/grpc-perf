@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include "client_utilities.h"
+#include "FastMemcpy.h"
 #include <fstream>
 
 //---------------------------------------------------------------------
@@ -292,4 +293,154 @@ void TraceMarker(const char* marker)
     // fout.open("/sys/kernel/debug/tracing/trace_marker");
     // fout << marker;
     // fout.close();
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+#define BUF_SIZE 16 * 1024 * 1024
+//TCHAR szName[] = TEXT("MyFileMappingObject");
+TCHAR szMsg[] = TEXT("Message from first process.");
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+class SharedMemorySidebandData
+{
+public:
+    SharedMemorySidebandData(const std::string& id);
+    ~SharedMemorySidebandData();
+
+    uint8_t* GetBuffer();
+
+private:
+    void Init();
+
+    HANDLE hMapFile;
+    uint8_t* pBuf;
+    std::string _id;
+};
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id) :
+    hMapFile(INVALID_HANDLE_VALUE),
+    pBuf(nullptr),
+    _id("TESTBUFFER_" + id)
+{
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SharedMemorySidebandData::~SharedMemorySidebandData()
+{
+    UnmapViewOfFile(pBuf);
+    CloseHandle(hMapFile);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+uint8_t* SharedMemorySidebandData::GetBuffer()
+{
+    if (pBuf == nullptr)
+    {
+        Init();
+    }
+    return pBuf;
+}
+
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void SharedMemorySidebandData::Init()
+{
+    hMapFile = CreateFileMappingA(
+        INVALID_HANDLE_VALUE,    // use paging file
+        NULL,                    // default security
+        PAGE_READWRITE,          // read/write access
+        0,                       // maximum object size (high-order DWORD)
+        BUF_SIZE,                // maximum object size (low-order DWORD)
+        _id.c_str());            // name of mapping object
+
+    if (hMapFile == NULL)
+    {
+        cout << "Could not create file mapping object " << GetLastError() << endl;
+        return;
+    }
+    pBuf = (uint8_t*)MapViewOfFile(hMapFile,   // handle to map object
+        FILE_MAP_ALL_ACCESS, // read/write permission
+        0,
+        0,
+        BUF_SIZE);
+
+    if (pBuf == NULL)
+    {
+        cout << "Could not map view of file " << GetLastError() << endl;
+        CloseHandle(hMapFile);
+        return;
+    }
+    return;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+std::map<std::string, SharedMemorySidebandData*> _buffers;
+bool _useFastMemcpy = false;
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void SetFastMemcpy(bool fastMemcpy)
+{
+    _useFastMemcpy = fastMemcpy;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+std::string WriteSidebandData(const std::string& strategy, const std::string& usageId, uint8_t* bytes, int bytecount)
+{
+    auto buffer = _buffers.find(usageId);
+    SharedMemorySidebandData* sidebandData = nullptr;
+    if (buffer == _buffers.end())
+    {
+        sidebandData = new SharedMemorySidebandData(usageId);
+        _buffers.emplace(usageId, sidebandData);
+    }
+    else
+    {
+        sidebandData = (*buffer).second;
+    }
+    auto ptr = sidebandData->GetBuffer();
+    if (_useFastMemcpy)
+    {
+        memcpy_fast(ptr, bytes, bytecount);
+    }
+    else
+    {
+        memcpy(ptr, bytes, bytecount);
+    }
+    return usageId;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void ReadSidebandData(const std::string& location, uint8_t* bytes, int bufferSize, int* numBytesRead)
+{    
+    auto buffer = _buffers.find(location);
+    SharedMemorySidebandData* sidebandData = nullptr;
+    if (buffer == _buffers.end())
+    {
+        sidebandData = new SharedMemorySidebandData(location);
+        _buffers.emplace(location, sidebandData);
+    }
+    else
+    {
+        sidebandData = (*buffer).second;
+    }
+    auto ptr = sidebandData->GetBuffer();
+    if (_useFastMemcpy)
+    {
+        memcpy_fast(bytes, ptr, bufferSize);
+    }
+    else
+    {
+        memcpy(bytes, ptr, bufferSize);
+    }
 }

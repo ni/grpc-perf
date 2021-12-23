@@ -103,6 +103,40 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, bool doubleBuffer, bool fastMemcpy, const std::string& message)
+{
+    cout << "Start Sideband Read Test " << message << endl;
+
+    uint8_t* buffer = new uint8_t[numSamples];
+
+    ClientContext context;
+    auto stream = client.m_Stub->TestSidebandStream(&context);
+
+    TestSidebandReadParameters readParameters;
+    readParameters.set_num_samples(numSamples);
+    readParameters.set_use_double_buffer(doubleBuffer);
+    readParameters.set_use_fast_memcpy(fastMemcpy);
+
+    SetFastMemcpy(fastMemcpy);
+
+    auto start = chrono::high_resolution_clock::now();
+    for (int x = 0; x < DefaultTestIterations; ++x)
+    {
+        TestSidebandWriteResult response;
+        stream->Write(readParameters);
+        stream->Read(&response);
+        int bytesRead;
+        ReadSidebandData(response.sideband_location(), buffer, numSamples, &bytesRead);
+    }
+    auto end = chrono::high_resolution_clock::now();
+    ReportMBPerSecond(start, end, numSamples / 8, DefaultTestIterations);
+
+    stream->WritesDone();
+    stream->Finish();
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void PerformMessagePerformanceTest(NIPerfTestClient& client)
 {
     cout << "Start Messages per second test" << endl;

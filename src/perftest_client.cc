@@ -245,7 +245,7 @@ void RunParallelStreamTest(int numClients, std::string targetStr, std::string& p
     PerformNStreamTest(clients, 10000);
     PerformNStreamTest(clients, 100000);
     PerformNStreamTest(clients, 200000);
-    PerformNStreamTest(clients, 400000);
+    //PerformNStreamTest(clients, 400000);
 }
 
 //---------------------------------------------------------------------
@@ -334,13 +334,58 @@ void RunScpiCompareTestSuite(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void RunSidebandDataTestSuite(NIPerfTestClient& client)
+{
+    cout << "Start Sideband Data Test Suite" << endl << endl;
+
+    cout << "Single Buffer, Standard memcpy" << endl;
+    PerformSidebandReadTest(client, 1024 * 1024, false, false, "1 MB Buffer");
+    PerformSidebandReadTest(client, 2 * 1024 * 1024, false, false, "2 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, false, false, "4 MB Buffer");
+    PerformSidebandReadTest(client, 8 * 1024 * 1024, false, false, "8 MB Buffer");
+    PerformSidebandReadTest(client, 12 * 1024 * 1024, false, false, "12 MB Buffer");
+    PerformSidebandReadTest(client, 16 * 1024 * 1024, false, false, "16 MB Buffer");
+
+    cout << endl;
+    cout << "Double Buffer, Standard memcpy" << endl;
+    PerformSidebandReadTest(client, 1024 * 1024, true, false, "1 MB Buffer");
+    PerformSidebandReadTest(client, 2 * 1024 * 1024, true, false, "2 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, true, false, "4 MB Buffer");
+    PerformSidebandReadTest(client, 8 * 1024 * 1024, true, false, "8 MB Buffer");
+    PerformSidebandReadTest(client, 12 * 1024 * 1024, true, false, "12 MB Buffer");
+    PerformSidebandReadTest(client, 16 * 1024 * 1024, true, false, "16 MB Buffer");
+
+    cout << endl;
+    cout << "Single Buffer, Fast memcpy" << endl;
+    PerformSidebandReadTest(client, 1024 * 1024, false, true, "1 MB Buffer");
+    PerformSidebandReadTest(client, 2 * 1024 * 1024, false, true, "2 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, false, true, "4 MB Buffer");
+    PerformSidebandReadTest(client, 8 * 1024 * 1024, false, true, "8 MB Buffer");
+    PerformSidebandReadTest(client, 12 * 1024 * 1024, false, true, "12 MB Buffer");
+    PerformSidebandReadTest(client, 16 * 1024 * 1024, false, true, "16 MB Buffer");
+
+    cout << endl;
+    cout << "Double Buffer, Fast memcpy" << endl;
+    PerformSidebandReadTest(client, 1024 * 1024, true, true, "1 MB Buffer");
+    PerformSidebandReadTest(client, 2 * 1024 * 1024, true, true, "2 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, true, true, "4 MB Buffer");
+    PerformSidebandReadTest(client, 8 * 1024 * 1024, true, true, "8 MB Buffer");
+    PerformSidebandReadTest(client, 12 * 1024 * 1024, true, true, "12 MB Buffer");
+    PerformSidebandReadTest(client, 16 * 1024 * 1024, true, true, "16 MB Buffer");
+
+    cout << endl;
+    cout << "Done" << endl;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
     // Configure gRPC
-    grpc_init();
-    grpc_timer_manager_set_threading(false);
-    ::grpc_core::Executor::SetThreadingDefault(false);
-    ::grpc_core::Executor::SetThreadingAll(false);
+    //grpc_init();
+    //grpc_timer_manager_set_threading(false);
+    //::grpc_core::Executor::SetThreadingDefault(false);
+    //::grpc_core::Executor::SetThreadingAll(false);
 
     // Configure enviornment
 #ifndef _WIN32    
@@ -391,9 +436,10 @@ int main(int argc, char **argv)
     }
 
     // Run desired test suites
-    // RunScpiCompareTestSuite(*client);
-    RunMessagePerformanceTestSuite(*client);
-    RunSteamingTestSuite(*client);
+    //RunScpiCompareTestSuite(*client);
+    //RunMessagePerformanceTestSuite(*client);
+    //RunSteamingTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
+    RunSidebandDataTestSuite(*client);
     return 0;   
 }
