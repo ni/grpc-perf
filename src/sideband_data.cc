@@ -254,10 +254,21 @@ void SocketSidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
 //---------------------------------------------------------------------
 std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t numSamples)
 {
-    if (strategy == ::SidebandStrategy::SOCKETS)
+    switch (strategy)
     {
-        return "4444";
-    }    
+        case ::SidebandStrategy::SHARED_MEMORY:
+            {
+                std::string usageId = "TestBuffer";
+                auto sidebandData = new SharedMemorySidebandData(usageId);
+                _buffers.emplace(usageId, sidebandData);
+                return usageId;
+            }
+            break;
+        case ::SidebandStrategy::SOCKETS:
+            return "4444";
+    }
+    assert(false);
+    return std::string();
 }
 
 //---------------------------------------------------------------------
@@ -341,15 +352,22 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 //---------------------------------------------------------------------
 int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::SidebandStrategy strategy, const std::string& usageId)
 {
-    if (strategy == ::SidebandStrategy::SOCKETS)
+    SidebandData* sidebandData = nullptr;
+    switch (strategy)
     {
-        auto tokens = split(sidebandServiceUrl, ':');
-        auto socket = ConnectTCPSocket(tokens[0], tokens[1], usageId);
-        auto sidebandData = new SocketSidebandData(socket, usageId);
-        _buffers.emplace(usageId, sidebandData);
-        return reinterpret_cast<int64_t>(sidebandData);
+        case ::SidebandStrategy::SHARED_MEMORY:
+            sidebandData = new SharedMemorySidebandData(usageId);
+            break;
+        case ::SidebandStrategy::SOCKETS:
+            {
+                auto tokens = split(sidebandServiceUrl, ':');
+                auto socket = ConnectTCPSocket(tokens[0], tokens[1], usageId);
+                sidebandData = new SocketSidebandData(socket, usageId);
+            }
+            break;
     }
-    return 0;
+    _buffers.emplace(usageId, sidebandData);
+    return reinterpret_cast<int64_t>(sidebandData);
 }
 
 //---------------------------------------------------------------------

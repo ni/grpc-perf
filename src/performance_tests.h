@@ -22,4 +22,4 @@ void PerformFourStreamTest(NIPerfTestClient& client, NIPerfTestClient& client2, 
 void PerformNStreamTest(std::vector<NIPerfTestClient*>& clients, int numSamples);
 void PerformAsyncInitTest(NIPerfTestClient& client, int numCommands, int numIterations);
 void PerformScopeLikeRead(NIPerfTestClient& client);
-void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, bool doubleBuffer, bool fastMemcpy, const std::string& message);
+void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, niPerfTest::SidebandStrategy strategy, bool fastMemcpy, const std::string& message);

@@ -106,7 +106,7 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, bool doubleBuffer, bool fastMemcpy, const std::string& message)
+void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, niPerfTest::SidebandStrategy strategy, bool fastMemcpy, const std::string& message)
 {
     cout << "Start Sideband Read Test " << message << endl;
 
@@ -116,7 +116,7 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, bool doub
     {
         ClientContext context;
         BeginTestSidebandStreamRequest request;
-        request.set_strategy(niPerfTest::SidebandStrategy::SOCKETS);
+        request.set_strategy(strategy);
         request.set_num_samples(numSamples);
         request.set_use_fast_memcpy(fastMemcpy);
         client.m_Stub->BeginTestSidebandStream(&context, request, &response);
@@ -129,7 +129,7 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, bool doub
         auto stream = client.m_Stub->TestSidebandStream(&context);
 
         TestSidebandStreamRequest readParameters;
-        readParameters.set_strategy(niPerfTest::SidebandStrategy::SOCKETS);
+        readParameters.set_strategy(strategy);
         readParameters.set_sideband_identifier(sidebandIdentifier);
         readParameters.set_num_samples(numSamples);
 
