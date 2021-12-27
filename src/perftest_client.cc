@@ -26,6 +26,8 @@ using grpc::ClientContext;
 using grpc::Status;
 using std::cout;
 using std::endl;
+
+using namespace std;
 using namespace niPerfTest;
 
 //---------------------------------------------------------------------

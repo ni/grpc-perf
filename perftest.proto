@@ -15,25 +15,93 @@ option cc_enable_arenas = true;
 package niPerfTest;
 
 //---------------------------------------------------------------------
+//---------------------------------------------------------------------
+enum SidebandStrategy
+{
+  UNKNOWN = 0;
+  SHARED_MEMORY = 1;
+  DOUBLE_BUFFERED_SHARED_MEMORY = 2;
+  SOCKETS = 3;
+  HYPERVISOR_SOCKETS = 4;
+  RDMA = 5;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+service SidebandDataService {
+  rpc InitSidebandData(InitSidebandDataRequest) returns (InitSidebandDataResponse) {};
+  rpc PairSidebandData(PairSidebandDataRequest) returns (PairSidebandDataResponse) {};
+  rpc CloseSidebandData(CloseSidebandDataRequest) returns (CloseSidebandDataResponse) {};
+}
+
+message InitSidebandDataRequest {
+  SidebandStrategy strategy = 3;  
+  string usage_id = 1;
+  fixed64 buffer_size = 2;
+}
+
+message InitSidebandDataResponse {
+  string buffer_identifier = 1;
+}
+
+message PairSidebandDataRequest {
+  string bufferIdentifier = 1;
+}
+
+message PairSidebandDataResponse {
+  string buffer_location = 1;
+}
+
+message CloseSidebandDataRequest {  
+  string usage_id = 1;
+}
+
+message CloseSidebandDataResponse {  
+}
+
+//---------------------------------------------------------------------
 // The niPerfTest service definition.
 //---------------------------------------------------------------------
 service niPerfTestService {
-    rpc StreamLatencyTest(stream StreamLatencyClient) returns (stream StreamLatencyServer) {};
-    rpc StreamLatencyTestClient(stream StreamLatencyClient) returns (StreamLatencyServer) {};
-    rpc StreamLatencyTestServer(StreamLatencyClient) returns (stream StreamLatencyServer) {};
-    rpc TestWrite(TestWriteParameters) returns (TestWriteResult) {};
-    rpc TestWriteContinuously(stream TestWriteParameters) returns (stream TestWriteResult) {};
+  rpc StreamLatencyTest(stream StreamLatencyClient) returns (stream StreamLatencyServer) {};
+  rpc StreamLatencyTestClient(stream StreamLatencyClient) returns (StreamLatencyServer) {};
+  rpc StreamLatencyTestServer(StreamLatencyClient) returns (stream StreamLatencyServer) {};
+  rpc TestWrite(TestWriteParameters) returns (TestWriteResult) {};
+  rpc TestWriteContinuously(stream TestWriteParameters) returns (stream TestWriteResult) {};
 
-    rpc TestSidebandStream(stream TestSidebandReadParameters) returns (stream TestSidebandWriteResult) {};
+  rpc BeginTestSidebandStream(BeginTestSidebandStreamRequest) returns (BeginTestSidebandStreamResponse) {};
+  rpc TestSidebandStream(stream TestSidebandStreamRequest) returns (stream TestSidebandStreamResponse) {};
 
-    rpc Init(InitParameters) returns (InitResult) {};
-    rpc ConfigureVertical(ConfigureVerticalRequest) returns (ConfigureVerticalResponse);
-    rpc ConfigureHorizontalTiming(ConfigureHorizontalTimingRequest) returns (ConfigureHorizontalTimingResponse);    
-    rpc InitiateAcquisition(InitiateAcquisitionRequest) returns (InitiateAcquisitionResponse);
-    rpc Read(ReadParameters) returns (ReadResult) {};
-    rpc ReadContinuously(ReadContinuouslyParameters) returns (stream ReadContinuouslyResult) {};
+  rpc Init(InitParameters) returns (InitResult) {};
+  rpc ConfigureVertical(ConfigureVerticalRequest) returns (ConfigureVerticalResponse);
+  rpc ConfigureHorizontalTiming(ConfigureHorizontalTimingRequest) returns (ConfigureHorizontalTimingResponse);    
+  rpc InitiateAcquisition(InitiateAcquisitionRequest) returns (InitiateAcquisitionResponse);
+  rpc Read(ReadParameters) returns (ReadResult) {};
+  rpc ReadContinuously(ReadContinuouslyParameters) returns (stream ReadContinuouslyResult) {};
 }
 
+message BeginTestSidebandStreamRequest {
+  SidebandStrategy strategy = 1;
+  int32 num_samples = 2;
+  bool use_fast_memcpy = 3;
+}
+
+message BeginTestSidebandStreamResponse {  
+  SidebandStrategy strategy = 1;
+  string connection_url = 2;
+  string sideband_identifier = 3;
+}
+
+message TestSidebandStreamRequest {
+  SidebandStrategy strategy = 1;
+  string sideband_identifier = 2;
+  int32 num_samples = 3;
+}
+
+message TestSidebandStreamResponse {
+  string sideband_location = 1;
+}
+    
 message StreamLatencyClient {
   uint32 message = 1;
 }
@@ -53,7 +121,7 @@ message InitResult {
 
 message ReadParameters {
   double timeout = 1;
-  int32 numSamples = 2;
+  int32 num_samples = 2;
 }
     
 message ReadResult {
@@ -65,16 +133,6 @@ message TestWriteParameters {
   repeated double samples = 2;
 }
 
-message TestSidebandReadParameters {
-  int32 num_samples = 1;
-  bool use_double_buffer = 2;
-  bool use_fast_memcpy = 3;
-}
-
-message TestSidebandWriteResult {
-  string sideband_location = 1;
-}
-    
 message TestWriteResult {
   int32 status = 1;
 }

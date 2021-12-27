@@ -1,5 +1,9 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+#pragma once
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 #include <grpcpp/grpcpp.h>
 #include <perftest.grpc.pb.h>
 #include <memory>
@@ -9,12 +13,11 @@
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
-using namespace std;
 using namespace niPerfTest;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-using timeVector = vector<chrono::microseconds>;
+using timeVector = std::vector<std::chrono::microseconds>;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -30,35 +33,29 @@ struct AsyncInitResults
 class NIPerfTestClient
 {
 public:
-    NIPerfTestClient(shared_ptr<Channel> channel);
+    NIPerfTestClient(std::shared_ptr<Channel> channel);
 
 public:
     int Init(int id);
-    int Init(int id, string command);
-    int InitAsync(int id, string command, grpc::CompletionQueue& cq,  AsyncInitResults* results);
-    int ConfigureVertical(string vi, string channelList, double range, double offset, VerticalCoupling coupling, double probe_attenuation, bool enabled);
-    int ConfigureHorizontalTiming(string vi, double min_sample_rate, int min_num_pts, double ref_position, int num_records, bool enforce_realtime);
-    int InitiateAcquisition(string vi);
+    int Init(int id, std::string command);
+    int InitAsync(int id, std::string command, grpc::CompletionQueue& cq,  AsyncInitResults* results);
+    int ConfigureVertical(std::string vi, std::string channelList, double range, double offset, VerticalCoupling coupling, double probe_attenuation, bool enabled);
+    int ConfigureHorizontalTiming(std::string vi, double min_sample_rate, int min_num_pts, double ref_position, int num_records, bool enforce_realtime);
+    int InitiateAcquisition(std::string vi);
     int Read(double timeout, int numSamples, double* samples);
     int TestWrite(int numSamples, double* samples);
-    unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> ReadContinuously(grpc::ClientContext* context, double timeout, int numSamples, int numIterations);
+    std::unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> ReadContinuously(grpc::ClientContext* context, double timeout, int numSamples, int numIterations);
 public:
-    unique_ptr<niPerfTestService::Stub> m_Stub;
+    std::unique_ptr<niPerfTestService::Stub> m_Stub;
 };
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void WriteLatencyData(timeVector times, const string& fileName);
+void WriteLatencyData(timeVector times, const std::string& fileName);
 void ReadSamples(NIPerfTestClient* client, int numSamples, int numIterations);
-void ReportMBPerSecond(chrono::high_resolution_clock::time_point start, chrono::high_resolution_clock::time_point end, int numSamples, int numIterations);
+void ReportMBPerSecond(std::chrono::high_resolution_clock::time_point start, std::chrono::high_resolution_clock::time_point end, int numSamples, int numIterations);
 void EnableTracing();
 void DisableTracing();
 void TracingOff();
 void TracingOn();
 void TraceMarker(const char* marker);
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-std::string WriteSidebandData(const std::string& strategy, const std::string& usageId, uint8_t* bytes, int bytecount);
-void ReadSidebandData(const std::string& location, uint8_t* bytes, int bufferSize, int* numBytesRead);
-void SetFastMemcpy(bool fastMemcpy);

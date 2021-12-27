@@ -9,6 +9,7 @@ if(NOT MSVC)
 else()
   cmake_policy(SET CMP0091 NEW)
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
@@ -70,8 +71,10 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc")
 add_executable(perftest_server
   src/perftest_server.cc
   src/client_utilities.cc
+  src/sideband_data.cc
   src/performance_tests.cc
   src/user_mode_networking.cc
+  src/sideband_sockets_server.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   )
@@ -87,6 +90,7 @@ target_link_libraries(perftest_server
 add_executable(perftest_client
   src/perftest_client.cc
   src/client_utilities.cc
+  src/sideband_data.cc
   src/performance_tests.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}

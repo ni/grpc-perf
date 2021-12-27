@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+#include <sideband_data.h>
 #include <performance_tests.h>
 #include <thread>
 #include <sstream>
@@ -30,6 +31,7 @@ using grpc::Status;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+using namespace std;
 using namespace niPerfTest;
 using namespace google::protobuf;
 
@@ -137,8 +139,8 @@ Status NIPerfTestServer::InitiateAcquisition(grpc::ServerContext* context, const
 //---------------------------------------------------------------------
 Status NIPerfTestServer::Read(ServerContext* context, const niPerfTest::ReadParameters* request, niPerfTest::ReadResult* response)
 {	
-	response->mutable_samples()->Reserve(request->numsamples());
-	response->mutable_samples()->Resize(request->numsamples(), 8.325793493);
+	response->mutable_samples()->Reserve(request->num_samples());
+	response->mutable_samples()->Resize(request->num_samples(), 8.325793493);
 	response->set_status(0);
 	return Status::OK;
 }
@@ -184,34 +186,48 @@ Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTe
 	return Status::OK;
 }
 
-bool doubleBuffer = true;
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response)
+{    
+    SetFastMemcpy(request->use_fast_memcpy());
+    auto identifier = InitOwnerSidebandData((::SidebandStrategy)request->strategy(), request->num_samples());
+    response->set_strategy(request->strategy());
+    response->set_sideband_identifier(identifier);
+    response->set_connection_url("localhost:50055");
+	return Status::OK;
+}
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandWriteResult, niPerfTest::TestSidebandReadParameters>* stream)
+Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandStreamResponse, niPerfTest::TestSidebandStreamRequest>* stream)
 {
     uint8_t* buffer = new uint8_t[16 * 1024 * 1024];
-    TestSidebandReadParameters request;
-    if (doubleBuffer)
+    TestSidebandStreamRequest request;
+    bool firstWrite = true;
+    while (stream->Read(&request))
     {
-        auto location = WriteSidebandData("sharedmemory", "buffer_a", buffer, request.num_samples());
-        while (stream->Read(&request))
+        TestSidebandStreamResponse response;
+        auto sidebandToken = GetOwnerSidebandDataToken(request.sideband_identifier());
+        switch (request.strategy())
         {
-            if (request.use_double_buffer())
-            {
-                TestSidebandWriteResult response;
-                response.set_sideband_location(location);
+            case niPerfTest::SidebandStrategy::SOCKETS:
                 stream->Write(response);
-                auto usageId = location == "bufer_a" ? "buffer_b" : "buffer_a";
-                auto location = WriteSidebandData("sharedmemory", usageId, buffer, request.num_samples());
-            }
-            else
-            {
-                auto location = WriteSidebandData("sharedmemory", "buffer_a", buffer, request.num_samples());
-                TestSidebandWriteResult response;
-                response.set_sideband_location(location);
+                WriteSidebandData(sidebandToken, buffer, request.num_samples());
+                break;
+            case niPerfTest::SidebandStrategy::SHARED_MEMORY:
+                WriteSidebandData(sidebandToken, buffer, request.num_samples());
                 stream->Write(response);
-            }
+                break;
+            case niPerfTest::SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY:
+                if (firstWrite)
+                {
+                    firstWrite = false;
+                    WriteSidebandData(sidebandToken, buffer, request.num_samples());
+                }
+                stream->Write(response);
+                WriteSidebandData(sidebandToken, buffer, request.num_samples());
+                break;
         }
     }
     return Status::OK;
@@ -413,6 +429,9 @@ int main(int argc, char **argv)
         threads.push_back(t);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    auto t = new std::thread(RunSidebandSocketsAccept);
+    threads.push_back(t);
 
     // localhost testing
     //{

@@ -28,6 +28,16 @@ using grpc::ServerWriter;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+class SidebandDataServer final : public niPerfTest::SidebandDataService::Service
+{
+public:
+    grpc::Status InitSidebandData(grpc::ServerContext* context, const ::niPerfTest::InitSidebandDataRequest* request, ::niPerfTest::InitSidebandDataResponse* response) override;
+    grpc::Status PairSidebandData(grpc::ServerContext* context, const ::niPerfTest::PairSidebandDataRequest* request, ::niPerfTest::PairSidebandDataResponse* response) override;
+    grpc::Status CloseSidebandData(grpc::ServerContext* context, const ::niPerfTest::CloseSidebandDataRequest* request, ::niPerfTest::CloseSidebandDataResponse* response) override;
+};
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 class NIPerfTestServer final : public niPerfTest::niPerfTestService::Service
 {
 public:
@@ -42,5 +52,6 @@ public:
     Status ReadContinuously(ServerContext* context, const niPerfTest::ReadContinuouslyParameters* request, grpc::ServerWriter<niPerfTest::ReadContinuouslyResult>* writer) override;
     Status TestWrite(ServerContext* context, const niPerfTest::TestWriteParameters* request, niPerfTest::TestWriteResult* response) override;
     Status TestWriteContinuously(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestWriteResult, niPerfTest::TestWriteParameters>* stream) override;
-    Status TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandWriteResult, niPerfTest::TestSidebandReadParameters>* stream) override;
+    Status BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response) override;
+    Status TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandStreamResponse, niPerfTest::TestSidebandStreamRequest>* stream) override;
 };

@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+#include <sideband_data.h>
 #include <performance_tests.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
@@ -24,6 +25,8 @@ using grpc::ClientContext;
 using grpc::Status;
 using std::cout;
 using std::endl;
+
+using namespace std;
 using namespace niPerfTest;
 
 //---------------------------------------------------------------------
@@ -107,32 +110,44 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, bool doub
 {
     cout << "Start Sideband Read Test " << message << endl;
 
-    uint8_t* buffer = new uint8_t[numSamples];
-
-    ClientContext context;
-    auto stream = client.m_Stub->TestSidebandStream(&context);
-
-    TestSidebandReadParameters readParameters;
-    readParameters.set_num_samples(numSamples);
-    readParameters.set_use_double_buffer(doubleBuffer);
-    readParameters.set_use_fast_memcpy(fastMemcpy);
-
     SetFastMemcpy(fastMemcpy);
-
-    auto start = chrono::high_resolution_clock::now();
-    for (int x = 0; x < DefaultTestIterations; ++x)
+    uint8_t* buffer = new uint8_t[numSamples];
+    BeginTestSidebandStreamResponse response;
     {
-        TestSidebandWriteResult response;
-        stream->Write(readParameters);
-        stream->Read(&response);
-        int bytesRead;
-        ReadSidebandData(response.sideband_location(), buffer, numSamples, &bytesRead);
+        ClientContext context;
+        BeginTestSidebandStreamRequest request;
+        request.set_strategy(niPerfTest::SidebandStrategy::SOCKETS);
+        request.set_num_samples(numSamples);
+        request.set_use_fast_memcpy(fastMemcpy);
+        client.m_Stub->BeginTestSidebandStream(&context, request, &response);
     }
-    auto end = chrono::high_resolution_clock::now();
-    ReportMBPerSecond(start, end, numSamples / 8, DefaultTestIterations);
+    auto sidebandIdentifier = response.sideband_identifier();
+    auto sidebandToken = InitClientSidebandData(response.connection_url(), (::SidebandStrategy)response.strategy(), response.sideband_identifier());
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    {
+        ClientContext context;
+        auto stream = client.m_Stub->TestSidebandStream(&context);
 
-    stream->WritesDone();
-    stream->Finish();
+        TestSidebandStreamRequest readParameters;
+        readParameters.set_strategy(niPerfTest::SidebandStrategy::SOCKETS);
+        readParameters.set_sideband_identifier(sidebandIdentifier);
+        readParameters.set_num_samples(numSamples);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int x = 0; x < DefaultTestIterations; ++x)
+        {
+            TestSidebandStreamResponse response;
+            stream->Write(readParameters);
+            stream->Read(&response);
+            int bytesRead;
+            ReadSidebandData(sidebandToken, buffer, numSamples, &bytesRead);
+        }
+        auto end = chrono::high_resolution_clock::now();
+        ReportMBPerSecond(start, end, numSamples / 8, DefaultTestIterations);
+        CloseSidebandData(sidebandToken);
+        stream->WritesDone();
+        stream->Finish();
+    }
 }
 
 //---------------------------------------------------------------------
