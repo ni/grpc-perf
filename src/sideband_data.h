@@ -18,9 +18,9 @@ enum SidebandStrategy
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t num_samples);
+std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSize);
 int64_t GetOwnerSidebandDataToken(const std::string& usageId);
-int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::SidebandStrategy strategy, const std::string& usageId);
+int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::SidebandStrategy strategy, const std::string& usageId, int bufferSize);
 void WriteSidebandData(int64_t dataToken, uint8_t* bytes, int bytecount);
 void ReadSidebandData(int64_t dataToken, uint8_t* bytes, int bufferSize, int* numBytesRead);
 void CloseSidebandData(int64_t dataToken);

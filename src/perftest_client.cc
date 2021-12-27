@@ -293,9 +293,9 @@ void RunSteamingTestSuite(NIPerfTestClient& client)
     // PerformStreamingTest(client, 100000);
     // PerformStreamingTest(client, 100000);
     // PerformStreamingTest(client, 100000);
-     PerformStreamingTest(client, 200000);
-     PerformStreamingTest(client, 400000);
-     PerformStreamingTest(client, 1000000);
+    //  PerformStreamingTest(client, 200000);
+    //  PerformStreamingTest(client, 400000);
+    //  PerformStreamingTest(client, 1000000);
 }
 
 //---------------------------------------------------------------------
@@ -344,36 +344,45 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
     PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "1 MB Buffer");
     PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "2 MB Buffer");
     PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "4 MB Buffer");
-    PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "8 MB Buffer");
-    PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "12 MB Buffer");
-    PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "16 MB Buffer");
+    // PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "8 MB Buffer");
+    // PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "12 MB Buffer");
+    // PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, false, "16 MB Buffer");
 
-    cout << endl;
-    cout << "Double Buffer, Standard memcpy" << endl;
-    PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "1 MB Buffer");
-    PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "2 MB Buffer");
-    PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "4 MB Buffer");
-    PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "8 MB Buffer");
-    PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "12 MB Buffer");
-    PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "16 MB Buffer");
+    // cout << endl;
+    // cout << "Double Buffer, Standard memcpy" << endl;
+    // PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "1 MB Buffer");
+    // PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "2 MB Buffer");
+    // PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "4 MB Buffer");
+    // PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "8 MB Buffer");
+    // PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "12 MB Buffer");
+    // PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, false, "16 MB Buffer");
 
     cout << endl;
     cout << "Single Buffer, Fast memcpy" << endl;
     PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "1 MB Buffer");
     PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "2 MB Buffer");
     PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "4 MB Buffer");
-    PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "8 MB Buffer");
-    PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "12 MB Buffer");
-    PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "16 MB Buffer");
+    // PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "8 MB Buffer");
+    // PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "12 MB Buffer");
+    // PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::SHARED_MEMORY, true, "16 MB Buffer");
 
     cout << endl;
     cout << "Double Buffer, Fast memcpy" << endl;
     PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "1 MB Buffer");
     PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "2 MB Buffer");
     PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "4 MB Buffer");
-    PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "8 MB Buffer");
-    PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "12 MB Buffer");
-    PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "16 MB Buffer");
+    // PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "8 MB Buffer");
+    // PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "12 MB Buffer");
+    // PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "16 MB Buffer");
+
+    cout << endl;
+    cout << "Sockets" << endl;
+    PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::SOCKETS, true, "1 MB Buffer");
+    PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::SOCKETS, true, "2 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::SOCKETS, true, "4 MB Buffer");
+    // PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "8 MB Buffer");
+    // PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "12 MB Buffer");
+    // PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "16 MB Buffer");
 
     cout << endl;
     cout << "Done" << endl;
@@ -440,7 +449,7 @@ int main(int argc, char **argv)
     // Run desired test suites
     //RunScpiCompareTestSuite(*client);
     //RunMessagePerformanceTestSuite(*client);
-    //RunSteamingTestSuite(*client);
+    //// RunSteamingTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
     RunSidebandDataTestSuite(*client);
     return 0;   

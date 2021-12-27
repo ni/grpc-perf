@@ -205,10 +205,14 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
     uint8_t* buffer = new uint8_t[16 * 1024 * 1024];
     TestSidebandStreamRequest request;
     bool firstWrite = true;
+    int64_t sidebandToken = 0;
     while (stream->Read(&request))
     {
         TestSidebandStreamResponse response;
-        auto sidebandToken = GetOwnerSidebandDataToken(request.sideband_identifier());
+        if (sidebandToken == 0)
+        {
+            sidebandToken = GetOwnerSidebandDataToken(request.sideband_identifier());
+        }
         switch (request.strategy())
         {
             case niPerfTest::SidebandStrategy::SOCKETS:
@@ -230,6 +234,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
                 break;
         }
     }
+    CloseSidebandData(sidebandToken);
     return Status::OK;
 }
 
@@ -260,7 +265,7 @@ string GetServerAddress(int argc, char** argv)
             cout << "The only acceptable argument is --address=" << endl;
         }
     }
-    return target_str;
+    return target_str;    
 }
 
 //---------------------------------------------------------------------

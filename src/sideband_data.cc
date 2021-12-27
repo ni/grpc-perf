@@ -8,13 +8,9 @@
 #include <ws2tcpip.h>
 #include "sideband_data.h"
 
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 class SidebandData;
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-#define BUF_SIZE 16 * 1024 * 1024
-//TCHAR szName[] = TEXT("MyFileMappingObject");
-TCHAR szMsg[] = TEXT("Message from first process.");
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -33,6 +29,7 @@ void SetFastMemcpy(bool fastMemcpy)
 class SidebandData
 {
 public:    
+    virtual ~SidebandData();
     virtual const std::string& UsageId() = 0;
     virtual void Write(uint8_t* bytes, int bytecount) = 0;
     virtual void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) = 0;
@@ -43,7 +40,7 @@ public:
 class SharedMemorySidebandData : public SidebandData
 {
 public:
-    SharedMemorySidebandData(const std::string& id);
+    SharedMemorySidebandData(const std::string& id, int64_t bufferSize);
     virtual ~SharedMemorySidebandData();
 
     void Write(uint8_t* bytes, int bytecount) override;
@@ -55,19 +52,65 @@ public:
 private:
     void Init();
 
-    HANDLE hMapFile;
-    uint8_t* pBuf;
+    HANDLE _mapFile;
+    uint8_t* _buffer;
     std::string _id;
     std::string _usageId;
+    int64_t _bufferSize;
 };
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id) :
-    hMapFile(INVALID_HANDLE_VALUE),
-    pBuf(nullptr),
+class DoubleBufferedSharedMemorySidebandData : public SidebandData
+{
+public:
+    DoubleBufferedSharedMemorySidebandData(const std::string& id, int64_t bufferSize);
+    virtual ~DoubleBufferedSharedMemorySidebandData();
+
+    void Write(uint8_t* bytes, int bytecount) override;
+    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
+
+    const std::string& UsageId() override;
+
+private:
+    std::string _id;
+    SharedMemorySidebandData* _current;
+    SharedMemorySidebandData _bufferA;
+    SharedMemorySidebandData _bufferB;
+};
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+class SocketSidebandData : public SidebandData
+{
+public:
+    SocketSidebandData(SOCKET socket, const std::string& id);
+    virtual ~SocketSidebandData();
+
+    void Write(uint8_t* bytes, int bytecount) override;
+    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
+
+    const std::string& UsageId() override;
+
+private:
+    std::string _id;
+    SOCKET _socket;
+};
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SidebandData::~SidebandData()
+{
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id, int64_t bufferSize) :
+    _mapFile(INVALID_HANDLE_VALUE),
+    _buffer(nullptr),
     _usageId(id),
-    _id("TESTBUFFER_" + id)
+    _id("TESTBUFFER_" + id),
+    _bufferSize(bufferSize)
 {
 }
 
@@ -75,8 +118,8 @@ SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id) :
 //---------------------------------------------------------------------
 SharedMemorySidebandData::~SharedMemorySidebandData()
 {
-    UnmapViewOfFile(pBuf);
-    CloseHandle(hMapFile);
+    UnmapViewOfFile(_buffer);
+    CloseHandle(_mapFile);
 }
 
 //---------------------------------------------------------------------
@@ -90,43 +133,36 @@ const std::string& SharedMemorySidebandData::UsageId()
 //---------------------------------------------------------------------
 inline uint8_t* SharedMemorySidebandData::GetBuffer()
 {
-    if (pBuf == nullptr)
+    if (_buffer == nullptr)
     {
         Init();
     }
-    return pBuf;
+    return _buffer;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void SharedMemorySidebandData::Init()
 {
-    hMapFile = CreateFileMappingA(
+    _mapFile = CreateFileMappingA(
         INVALID_HANDLE_VALUE,    // use paging file
         NULL,                    // default security
         PAGE_READWRITE,          // read/write access
         0,                       // maximum object size (high-order DWORD)
-        BUF_SIZE,                // maximum object size (low-order DWORD)
+        _bufferSize,                // maximum object size (low-order DWORD)
         _id.c_str());            // name of mapping object
 
-    if (hMapFile == NULL)
+    if (_mapFile == NULL)
     {
         std::cout << "Could not create file mapping object " << GetLastError() << std::endl;
         return;
     }
-    pBuf = (uint8_t*)MapViewOfFile(hMapFile,   // handle to map object
-        FILE_MAP_ALL_ACCESS, // read/write permission
-        0,
-        0,
-        BUF_SIZE);
-
-    if (pBuf == NULL)
+    _buffer = (uint8_t*)MapViewOfFile(_mapFile, FILE_MAP_ALL_ACCESS, 0, 0, _bufferSize);
+    if (_buffer == NULL)
     {
         std::cout << "Could not map view of file " << GetLastError() << std::endl;
-        CloseHandle(hMapFile);
-        return;
+        CloseHandle(_mapFile);
     }
-    return;
 }
 
 //---------------------------------------------------------------------
@@ -161,21 +197,41 @@ void SharedMemorySidebandData::Read(uint8_t* bytes, int bufferSize, int* numByte
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-class SocketSidebandData : public SidebandData
+DoubleBufferedSharedMemorySidebandData::DoubleBufferedSharedMemorySidebandData(const std::string& id, int64_t bufferSize) :
+    _bufferA(id + "_A", bufferSize),
+    _bufferB(id + "_B", bufferSize)
 {
-public:
-    SocketSidebandData(SOCKET socket, const std::string& id);
-    virtual ~SocketSidebandData();
+    _current = &_bufferA;    
+}
 
-    void Write(uint8_t* bytes, int bytecount) override;
-    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+DoubleBufferedSharedMemorySidebandData::~DoubleBufferedSharedMemorySidebandData()
+{    
+}
 
-    const std::string& UsageId() override;
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void DoubleBufferedSharedMemorySidebandData::Write(uint8_t* bytes, int bytecount)
+{
+    _current->Write(bytes, bytecount);
+    _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+}
 
-private:
-    std::string _id;
-    SOCKET _socket;
-};
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void DoubleBufferedSharedMemorySidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
+{    
+    _current->Read(bytes, bufferSize, numBytesRead);
+    _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+const std::string& DoubleBufferedSharedMemorySidebandData::UsageId()
+{
+    return _id;
+}
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -189,6 +245,7 @@ SocketSidebandData::SocketSidebandData(SOCKET socket, const std::string& id) :
 //---------------------------------------------------------------------
 SocketSidebandData::~SocketSidebandData()
 {    
+    closesocket(_socket);
 }
 
 //---------------------------------------------------------------------
@@ -252,14 +309,22 @@ void SocketSidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t numSamples)
+std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSize)
 {
     switch (strategy)
     {
+        case ::SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY:
+            {
+                std::string usageId = "TestBuffer";
+                auto sidebandData = new DoubleBufferedSharedMemorySidebandData(usageId, bufferSize);
+                _buffers.emplace(usageId, sidebandData);
+                return usageId;
+            }
+            break;
         case ::SidebandStrategy::SHARED_MEMORY:
             {
                 std::string usageId = "TestBuffer";
-                auto sidebandData = new SharedMemorySidebandData(usageId);
+                auto sidebandData = new SharedMemorySidebandData(usageId, bufferSize);
                 _buffers.emplace(usageId, sidebandData);
                 return usageId;
             }
@@ -350,13 +415,16 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::SidebandStrategy strategy, const std::string& usageId)
+int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::SidebandStrategy strategy, const std::string& usageId, int bufferSize)
 {
     SidebandData* sidebandData = nullptr;
     switch (strategy)
     {
         case ::SidebandStrategy::SHARED_MEMORY:
-            sidebandData = new SharedMemorySidebandData(usageId);
+            sidebandData = new SharedMemorySidebandData(usageId, bufferSize);
+            break;
+        case ::SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY:
+            sidebandData = new DoubleBufferedSharedMemorySidebandData(usageId, bufferSize);
             break;
         case ::SidebandStrategy::SOCKETS:
             {
@@ -398,4 +466,7 @@ void ReadSidebandData(int64_t dataToken, uint8_t* bytes, int bufferSize, int* nu
 //---------------------------------------------------------------------
 void CloseSidebandData(int64_t dataToken)
 {    
+    auto sidebandData = reinterpret_cast<SidebandData*>(dataToken);
+    _buffers.erase(sidebandData->UsageId());
+    delete sidebandData;
 }
