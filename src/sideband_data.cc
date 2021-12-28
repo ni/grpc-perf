@@ -14,6 +14,8 @@ class SidebandData;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+std::mutex _bufferLockMutex;
+std::condition_variable _bufferLock;
 std::map<std::string, SidebandData*> _buffers;
 bool _useFastMemcpy = false;
 
@@ -149,7 +151,7 @@ void SharedMemorySidebandData::Init()
         NULL,                    // default security
         PAGE_READWRITE,          // read/write access
         0,                       // maximum object size (high-order DWORD)
-        _bufferSize,                // maximum object size (low-order DWORD)
+        _bufferSize,             // maximum object size (low-order DWORD)
         _id.c_str());            // name of mapping object
 
     if (_mapFile == NULL)
@@ -312,6 +314,7 @@ void SocketSidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
 //---------------------------------------------------------------------
 std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSize)
 {
+    std::unique_lock<std::mutex> lock(_bufferLockMutex);
     switch (strategy)
     {
         case ::SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY:
@@ -341,10 +344,10 @@ std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSiz
 //---------------------------------------------------------------------
 SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usageId)
 {    
-    SOCKET ConnectSocket = INVALID_SOCKET;
-    struct addrinfo *result = NULL,
-                    *ptr = NULL,
-                    hints;
+    SOCKET connectSocket = INVALID_SOCKET;
+    struct addrinfo *result = NULL;
+    struct addrinfo *ptr = NULL;
+    struct addrinfo hints;
     int iResult;
     
     ZeroMemory(&hints, sizeof(hints));
@@ -361,42 +364,45 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     }
 
     // Attempt to connect to an address until one succeeds
-    for(ptr=result; ptr != NULL ;ptr=ptr->ai_next)
+    for(ptr=result; ptr != NULL; ptr=ptr->ai_next)
     {
         // Create a SOCKET for connecting to server
-        ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-        if (ConnectSocket == INVALID_SOCKET)
+        connectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        if (connectSocket == INVALID_SOCKET)
         {
             std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
             return 0;
         }
 
         // Connect to server.
-        iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+        iResult = connect(connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
         if (iResult == SOCKET_ERROR)
         {
-            closesocket(ConnectSocket);
-            ConnectSocket = INVALID_SOCKET;
+            closesocket(connectSocket);
+            connectSocket = INVALID_SOCKET;
             continue;
         }
         break;
     }
     freeaddrinfo(result);
-    if (ConnectSocket == INVALID_SOCKET)
+    if (connectSocket == INVALID_SOCKET)
     {
         std::cout << "Unable to connect to server!" << std::endl;
         return 0;
     }
 
     // Tell the server what shared memory location we are for
-    WriteToSocket(ConnectSocket, const_cast<char*>(usageId.c_str()), usageId.length());
-    return ConnectSocket;
+    WriteToSocket(connectSocket, const_cast<char*>(usageId.c_str()), usageId.length());
+    return connectSocket;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int64_t GetOwnerSidebandDataToken(const std::string& usageId)
 {
+    std::unique_lock<std::mutex> lock(_bufferLockMutex);
+    
+    while (_buffers.find(usageId) == _buffers.end()) _bufferLock.wait(lock);
     return reinterpret_cast<int64_t>(_buffers[usageId]);
 }
 
@@ -418,6 +424,8 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 //---------------------------------------------------------------------
 int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::SidebandStrategy strategy, const std::string& usageId, int bufferSize)
 {
+    std::unique_lock<std::mutex> lock(_bufferLockMutex);
+
     SidebandData* sidebandData = nullptr;
     switch (strategy)
     {
@@ -444,9 +452,13 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
 //---------------------------------------------------------------------
 void AddServerSidebandSocket(int socket, const std::string& usageId)
 {    
+    std::unique_lock<std::mutex> lock(_bufferLockMutex);
+
     auto sidebandData = new SocketSidebandData(socket, usageId);
     assert(_buffers.find(sidebandData->UsageId()) == _buffers.end());
     _buffers.emplace(usageId, sidebandData);
+
+    _bufferLock.notify_all();
 }
 
 //---------------------------------------------------------------------
@@ -469,6 +481,8 @@ void ReadSidebandData(int64_t dataToken, uint8_t* bytes, int bufferSize, int* nu
 //---------------------------------------------------------------------
 void CloseSidebandData(int64_t dataToken)
 {    
+    std::unique_lock<std::mutex> lock(_bufferLockMutex);
+
     auto sidebandData = reinterpret_cast<SidebandData*>(dataToken);
     assert(_buffers.find(sidebandData->UsageId()) != _buffers.end());
     _buffers.erase(sidebandData->UsageId());

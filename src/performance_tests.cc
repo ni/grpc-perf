@@ -123,7 +123,6 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, niPerfTes
     }
     auto sidebandIdentifier = response.sideband_identifier();
     auto sidebandToken = InitClientSidebandData(response.connection_url(), (::SidebandStrategy)response.strategy(), response.sideband_identifier(), numSamples);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     {
         ClientContext context;
         auto stream = client.m_Stub->TestSidebandStream(&context);

@@ -212,6 +212,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
         if (sidebandToken == 0)
         {
             sidebandToken = GetOwnerSidebandDataToken(request.sideband_identifier());
+            assert(sidebandToken != 0);
         }
         switch (request.strategy())
         {
