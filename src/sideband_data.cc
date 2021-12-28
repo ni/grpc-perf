@@ -199,7 +199,8 @@ void SharedMemorySidebandData::Read(uint8_t* bytes, int bufferSize, int* numByte
 //---------------------------------------------------------------------
 DoubleBufferedSharedMemorySidebandData::DoubleBufferedSharedMemorySidebandData(const std::string& id, int64_t bufferSize) :
     _bufferA(id + "_A", bufferSize),
-    _bufferB(id + "_B", bufferSize)
+    _bufferB(id + "_B", bufferSize),
+    _id(id)
 {
     _current = &_bufferA;    
 }
@@ -434,6 +435,7 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
             }
             break;
     }
+    assert(_buffers.find(usageId) == _buffers.end());
     _buffers.emplace(usageId, sidebandData);
     return reinterpret_cast<int64_t>(sidebandData);
 }
@@ -443,6 +445,7 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
 void AddServerSidebandSocket(int socket, const std::string& usageId)
 {    
     auto sidebandData = new SocketSidebandData(socket, usageId);
+    assert(_buffers.find(sidebandData->UsageId()) == _buffers.end());
     _buffers.emplace(usageId, sidebandData);
 }
 
@@ -467,6 +470,7 @@ void ReadSidebandData(int64_t dataToken, uint8_t* bytes, int bufferSize, int* nu
 void CloseSidebandData(int64_t dataToken)
 {    
     auto sidebandData = reinterpret_cast<SidebandData*>(dataToken);
+    assert(_buffers.find(sidebandData->UsageId()) != _buffers.end());
     _buffers.erase(sidebandData->UsageId());
     delete sidebandData;
 }
