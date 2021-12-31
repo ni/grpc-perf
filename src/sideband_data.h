@@ -6,6 +6,8 @@
 //---------------------------------------------------------------------
 #include <client_utilities.h>
 
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 enum SidebandStrategy
 {
   UNKNOWN = 0,
@@ -24,8 +26,8 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
 void WriteSidebandData(int64_t dataToken, uint8_t* bytes, int bytecount);
 void ReadSidebandData(int64_t dataToken, uint8_t* bytes, int bufferSize, int* numBytesRead);
 void CloseSidebandData(int64_t dataToken);
-void AddServerSidebandSocket(int socket, const std::string& usageId);
 int RunSidebandSocketsAccept();
+int AcceptSidebandRdmaRequests();
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

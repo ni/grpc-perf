@@ -170,8 +170,8 @@ int NIPerfTestClient::TestWrite(int numSamples, double* samples)
 unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> NIPerfTestClient::ReadContinuously(grpc::ClientContext* context, double timeout, int numSamples, int numIterations)
 {    
     ReadContinuouslyParameters request;
-    request.set_numsamples(numSamples);
-    request.set_numiterations(numIterations);
+    request.set_num_samples(numSamples);
+    request.set_num_iterations(numIterations);
 
     return m_Stub->ReadContinuously(context, request);
 }

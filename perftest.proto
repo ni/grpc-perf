@@ -15,51 +15,6 @@ option cc_enable_arenas = true;
 package niPerfTest;
 
 //---------------------------------------------------------------------
-//---------------------------------------------------------------------
-enum SidebandStrategy
-{
-  UNKNOWN = 0;
-  SHARED_MEMORY = 1;
-  DOUBLE_BUFFERED_SHARED_MEMORY = 2;
-  SOCKETS = 3;
-  HYPERVISOR_SOCKETS = 4;
-  RDMA = 5;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-service SidebandDataService {
-  rpc InitSidebandData(InitSidebandDataRequest) returns (InitSidebandDataResponse) {};
-  rpc PairSidebandData(PairSidebandDataRequest) returns (PairSidebandDataResponse) {};
-  rpc CloseSidebandData(CloseSidebandDataRequest) returns (CloseSidebandDataResponse) {};
-}
-
-message InitSidebandDataRequest {
-  SidebandStrategy strategy = 3;  
-  string usage_id = 1;
-  fixed64 buffer_size = 2;
-}
-
-message InitSidebandDataResponse {
-  string buffer_identifier = 1;
-}
-
-message PairSidebandDataRequest {
-  string bufferIdentifier = 1;
-}
-
-message PairSidebandDataResponse {
-  string buffer_location = 1;
-}
-
-message CloseSidebandDataRequest {  
-  string usage_id = 1;
-}
-
-message CloseSidebandDataResponse {  
-}
-
-//---------------------------------------------------------------------
 // The niPerfTest service definition.
 //---------------------------------------------------------------------
 service niPerfTestService {
@@ -78,6 +33,18 @@ service niPerfTestService {
   rpc InitiateAcquisition(InitiateAcquisitionRequest) returns (InitiateAcquisitionResponse);
   rpc Read(ReadParameters) returns (ReadResult) {};
   rpc ReadContinuously(ReadContinuouslyParameters) returns (stream ReadContinuouslyResult) {};
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+enum SidebandStrategy
+{
+  UNKNOWN = 0;
+  SHARED_MEMORY = 1;
+  DOUBLE_BUFFERED_SHARED_MEMORY = 2;
+  SOCKETS = 3;
+  HYPERVISOR_SOCKETS = 4;
+  RDMA = 5;
 }
 
 message BeginTestSidebandStreamRequest {
@@ -138,8 +105,8 @@ message TestWriteResult {
 }
 
 message ReadContinuouslyParameters {
-  int32 numIterations = 1;
-  int32 numSamples = 2;
+  int32 num_iterations = 1;
+  int32 num_samples = 2;
 }
     
 message ReadContinuouslyResult {

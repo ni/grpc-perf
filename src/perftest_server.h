@@ -28,16 +28,6 @@ using grpc::ServerWriter;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-class SidebandDataServer final : public niPerfTest::SidebandDataService::Service
-{
-public:
-    grpc::Status InitSidebandData(grpc::ServerContext* context, const ::niPerfTest::InitSidebandDataRequest* request, ::niPerfTest::InitSidebandDataResponse* response) override;
-    grpc::Status PairSidebandData(grpc::ServerContext* context, const ::niPerfTest::PairSidebandDataRequest* request, ::niPerfTest::PairSidebandDataResponse* response) override;
-    grpc::Status CloseSidebandData(grpc::ServerContext* context, const ::niPerfTest::CloseSidebandDataRequest* request, ::niPerfTest::CloseSidebandDataResponse* response) override;
-};
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 class NIPerfTestServer final : public niPerfTest::niPerfTestService::Service
 {
 public:

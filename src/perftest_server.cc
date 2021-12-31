@@ -172,9 +172,9 @@ Status NIPerfTestServer::TestWriteContinuously(ServerContext* context, grpc::Ser
 Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTest::ReadContinuouslyParameters* request, grpc::ServerWriter<niPerfTest::ReadContinuouslyResult>* writer)
 {			
 	niPerfTest::ReadContinuouslyResult response;
-	response.mutable_wfm()->Reserve(request->numsamples());
-	response.mutable_wfm()->Resize(request->numsamples(), 0.0);
-    auto iterations = request->numiterations();
+	response.mutable_wfm()->Reserve(request->num_samples());
+	response.mutable_wfm()->Resize(request->num_samples(), 0.0);
+    auto iterations = request->num_iterations();
     if (iterations == 0)
     {
         iterations = 10000;
@@ -194,7 +194,14 @@ Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const n
     auto identifier = InitOwnerSidebandData((::SidebandStrategy)request->strategy(), request->num_samples());
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
-    response->set_connection_url("localhost:50055");
+    if (request->strategy() == niPerfTest::SidebandStrategy::RDMA)
+    {
+        response->set_connection_url("169.254.179.151:50060");
+    }
+    else
+    {
+        response->set_connection_url("169.254.179.151:50055");
+    }
 	return Status::OK;
 }
 
@@ -216,6 +223,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
         }
         switch (request.strategy())
         {
+            case niPerfTest::SidebandStrategy::RDMA:
             case niPerfTest::SidebandStrategy::SOCKETS:
                 stream->Write(response);
                 WriteSidebandData(sidebandToken, buffer, request.num_samples());
@@ -438,6 +446,9 @@ int main(int argc, char **argv)
 
     auto t = new std::thread(RunSidebandSocketsAccept);
     threads.push_back(t);
+
+    auto t2 = new std::thread(AcceptSidebandRdmaRequests);
+    threads.push_back(t2);
 
     // localhost testing
     //{

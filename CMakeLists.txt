@@ -71,10 +71,12 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc")
 add_executable(perftest_server
   src/perftest_server.cc
   src/client_utilities.cc
-  src/sideband_data.cc
   src/performance_tests.cc
   src/user_mode_networking.cc
-  src/sideband_sockets_server.cc
+  src/sideband_data.cc
+  src/sideband_sockets.cc
+  src/sideband_shared_memory.cc
+  src/sideband_rdma.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   )
@@ -91,6 +93,9 @@ add_executable(perftest_client
   src/perftest_client.cc
   src/client_utilities.cc
   src/sideband_data.cc
+  src/sideband_sockets.cc
+  src/sideband_shared_memory.cc
+  src/sideband_rdma.cc
   src/performance_tests.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
