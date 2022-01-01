@@ -141,3 +141,20 @@ void CloseSidebandData(int64_t dataToken)
     _buffers.erase(sidebandData->UsageId());
     delete sidebandData;
 }
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+std::string GetConnectionAddress(::SidebandStrategy strategy)
+{
+    std::string address;
+    if (strategy == ::SidebandStrategy::RDMA)
+    {
+        address = GetRdmaAddress() + ":50060";
+    }
+    else
+    {
+        address = GetSocketsAddress() + ":50055";
+    }
+    std::cout << "Connection address: " << address << std::endl;
+    return address;
+}

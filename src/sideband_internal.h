@@ -118,3 +118,7 @@ private:
 void AddServerSidebandSocket(int socket, const std::string& usageId);
 void RegisterSidebandData(SidebandData* sidebandData);
 std::vector<std::string> SplitUrlString(const std::string& s);
+
+std::string GetConnectionAddress(::SidebandStrategy strategy);
+std::string GetRdmaAddress();
+std::string GetSocketsAddress();

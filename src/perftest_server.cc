@@ -2,6 +2,7 @@
 //---------------------------------------------------------------------
 #include <client_utilities.h>
 #include <sideband_data.h>
+#include <sideband_internal.h>
 #include <performance_tests.h>
 #include <thread>
 #include <sstream>
@@ -194,14 +195,7 @@ Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const n
     auto identifier = InitOwnerSidebandData((::SidebandStrategy)request->strategy(), request->num_samples());
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
-    if (request->strategy() == niPerfTest::SidebandStrategy::RDMA)
-    {
-        response->set_connection_url("169.254.179.151:50060");
-    }
-    else
-    {
-        response->set_connection_url("169.254.179.151:50055");
-    }
+    response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
 	return Status::OK;
 }
 

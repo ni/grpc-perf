@@ -190,6 +190,18 @@ void SocketSidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+std::string GetSocketsAddress()
+{
+    auto rdmaAddress = GetRdmaAddress();
+    if (rdmaAddress.length() > 0)
+    {
+        return rdmaAddress;
+    }
+    return "localhost";
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 int RunSidebandSocketsAccept()
 {
 
