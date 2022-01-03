@@ -4,6 +4,7 @@
 #include <fstream>
 #include "sideband_data.h"
 #include "sideband_internal.h"
+#include <condition_variable>
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

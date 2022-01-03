@@ -8,20 +8,36 @@
 #include <iostream>
 #include <ostream>
 #include <sys/types.h> 
+
+#ifdef _WIN32
 #include <winsock2.h>
-#include <sideband_data.h>
-#include <sideband_internal.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#else
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/ip.h>
+#endif
+
+#include <sideband_data.h>
+#include <sideband_internal.h>
 #include <sstream>
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+#ifdef _WIN32
 #pragma comment(lib, "Ws2_32.lib")
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #define TEST_TCP_PORT 50055
+
+#ifndef _WIN32
+#define SOCKET int
+#define INVALID_SOCKET 0
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -75,6 +91,8 @@ void ReadFromSocket(int socket, void* buffer, int count)
 SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usageId)
 {    
     SOCKET connectSocket = INVALID_SOCKET;
+    
+#ifdef _WIN32
     struct addrinfo *result = NULL;
     struct addrinfo *ptr = NULL;
     struct addrinfo hints;
@@ -120,6 +138,32 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
         std::cout << "Unable to connect to server!" << std::endl;
         return 0;
     }
+#else
+    int portno;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+    portno = atoi(port.c_str());
+    connectSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (connectSocket < 0) 
+    {
+        std::cout << "ERROR opening socket" << std::endl;
+        return 0;
+    }
+    server = gethostbyname(address.c_str());
+    if (server == NULL)
+    {
+        std::cout << "ERROR, no such host" << std::endl;
+        return 0;
+    }
+    bzero((char*)&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char*)server->h_addr, (char*)&serv_addr.sin_addr.s_addr, server->h_length);
+    serv_addr.sin_port = htons(portno);
+    if (connect(connectSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    { 
+        error("ERROR connecting");
+    }
+#endif
 
     // Tell the server what shared memory location we are for
     WriteToSocket(connectSocket, const_cast<char*>(usageId.c_str()), usageId.length());
@@ -138,7 +182,11 @@ SocketSidebandData::SocketSidebandData(uint64_t socket, const std::string& id) :
 //---------------------------------------------------------------------
 SocketSidebandData::~SocketSidebandData()
 {    
+#ifdef _WIN32
     closesocket(_socket);
+#else
+    close(_socket);
+#endif
 }
 
 //---------------------------------------------------------------------
@@ -206,11 +254,13 @@ int RunSidebandSocketsAccept()
 {
 
     int sockfd, newsockfd;
-    int clilen;
+    socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
 
+#ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2,2), &wsaData);
+#endif
 
     // create a socket
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -247,7 +297,12 @@ int RunSidebandSocketsAccept()
         ReadFromSocket(newsockfd, buffer, 4);
         AddServerSidebandSocket(newsockfd, std::string(buffer, 4));
     }
+#ifdef _WIN32
     closesocket(newsockfd);
     closesocket(sockfd);
+#else
+    close(newsockfd);
+    close(sockfd);
+#endif
     return 0; 
 }
