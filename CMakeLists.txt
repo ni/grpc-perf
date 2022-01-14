@@ -6,6 +6,8 @@ project(grpc-perf C CXX)
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  set(RDMA_LIB "libnirdma.so")
+  SET(LVRT_LIB "liblvrt.so")
 else()
   cmake_policy(SET CMP0091 NEW)
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
@@ -14,6 +16,7 @@ else()
 endif()
 
 find_package(Threads REQUIRED)
+link_directories(.)
 
 #----------------------------------------------------------------------
 # Include the gRPC's cmake build
@@ -81,10 +84,12 @@ add_executable(perftest_server
   ${perftest_grpc_srcs}
   )
 target_link_libraries(perftest_server
-   ${_REFLECTION}
-   ${_GRPC_GRPCPP}
-   ${_PROTOBUF_LIBPROTOBUF}
-   )
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  ${RDMA_LIB}
+  ${LVRT_LIB}
+  )
 
 #----------------------------------------------------------------------
 # Example C++ application to talk to the perftest gRPC service
@@ -101,9 +106,12 @@ add_executable(perftest_client
   ${perftest_grpc_srcs}
   )
 target_link_libraries(perftest_client
-   ${_REFLECTION}
-   ${_GRPC_GRPCPP}
-   ${_PROTOBUF_LIBPROTOBUF})
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  ${RDMA_LIB}
+  ${LVRT_LIB}
+  )
 
 #----------------------------------------------------------------------
 # Simple proto specific proxy
@@ -116,6 +124,6 @@ add_executable(perftest_proxy
   ${perftest_grpc_srcs}
   )
 target_link_libraries(perftest_proxy
-   ${_REFLECTION}
-   ${_GRPC_GRPCPP}
-   ${_PROTOBUF_LIBPROTOBUF})
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF})

@@ -57,8 +57,9 @@ public:
 
 private:
     void Init();
-
+#ifdef _WIN32
     HANDLE _mapFile;
+#endif
     uint8_t* _buffer;
     std::string _id;
     std::string _usageId;

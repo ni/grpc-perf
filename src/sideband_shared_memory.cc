@@ -1,14 +1,14 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include "client_utilities.h"
-#include "FastMemcpy.h"
 #include <fstream>
 #include <sstream>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include "sideband_data.h"
 #include "sideband_internal.h"
+
+#ifdef _WIN32
 #include "FastMemcpy.h"
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -24,7 +24,9 @@ void SetFastMemcpy(bool fastMemcpy)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id, int64_t bufferSize) :
+#ifdef _WIN32
     _mapFile(INVALID_HANDLE_VALUE),
+#endif
     _buffer(nullptr),
     _usageId(id),
     _id("TESTBUFFER_" + id),
@@ -36,8 +38,10 @@ SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id, int64_
 //---------------------------------------------------------------------
 SharedMemorySidebandData::~SharedMemorySidebandData()
 {
+#ifdef _WIN32
     UnmapViewOfFile(_buffer);
     CloseHandle(_mapFile);
+#endif
 }
 
 //---------------------------------------------------------------------
@@ -71,6 +75,7 @@ inline uint8_t* SharedMemorySidebandData::GetBuffer()
 //---------------------------------------------------------------------
 void SharedMemorySidebandData::Init()
 {
+#ifdef _WIN32
     _mapFile = CreateFileMappingA(
         INVALID_HANDLE_VALUE,    // use paging file
         NULL,                    // default security
@@ -90,6 +95,7 @@ void SharedMemorySidebandData::Init()
         std::cout << "Could not map view of file " << GetLastError() << std::endl;
         CloseHandle(_mapFile);
     }
+#endif
 }
 
 //---------------------------------------------------------------------
@@ -97,6 +103,7 @@ void SharedMemorySidebandData::Init()
 void SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 {    
     auto ptr = GetBuffer();
+#ifdef _WIN32
     if (_useFastMemcpy)
     {
         memcpy_fast(ptr, bytes, bytecount);
@@ -105,6 +112,9 @@ void SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
     {
         memcpy(ptr, bytes, bytecount);
     }
+#else
+        memcpy(ptr, bytes, bytecount);
+#endif
 }
 
 //---------------------------------------------------------------------
@@ -112,6 +122,7 @@ void SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 void SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
     auto ptr = GetBuffer();
+#ifdef _WIN32
     if (_useFastMemcpy)
     {
         memcpy_fast(bytes, ptr, bufferSize);
@@ -120,6 +131,9 @@ void SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t*
     {
         memcpy(bytes, ptr, bufferSize);
     }
+#else
+    memcpy(bytes, ptr, bufferSize);
+#endif
 }
 
 //---------------------------------------------------------------------
