@@ -436,7 +436,7 @@ int main(int argc, char **argv)
     args.SetMaxReceiveMessageSize(10 * 100 * 1024 * 1024);
     args.SetMaxSendMessageSize(10 * 100 * 1024 * 1024);
     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    auto monikerclient = new MonikerClient(grpc::CreateCustomChannel(target_str + port, creds, args));
+    auto monikerClient = new MonikerClient(grpc::CreateCustomChannel(target_str + port, creds, args));
 
     // Verify the client is working correctly
     auto result = client->Init(42);
@@ -457,6 +457,7 @@ int main(int argc, char **argv)
     //RunMessagePerformanceTestSuite(*client);
     //RunSteamingTestSuite(*client);
     //RunLatencyStreamTestSuite(*client);
-    RunSidebandDataTestSuite(*client);
+    //RunSidebandDataTestSuite(*client);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
     return 0;   
 }
