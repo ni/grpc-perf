@@ -58,6 +58,7 @@ message MonikerWriteRequest {
     MonikerList monikers = 1;
     MonikerWriteData data = 2;
   }
+  bool complete = 3;
 }
 
 message MonikerWriteData {

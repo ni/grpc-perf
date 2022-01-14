@@ -45,3 +45,14 @@ public:
     Status BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response) override;
     Status TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandStreamResponse, niPerfTest::TestSidebandStreamRequest>* stream) override;
 };
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+class NIMonikerServer final : public niPerfTest::MonikerService::Service
+{
+public:
+    grpc::Status BeginMonikerSidebandStream(grpc::ServerContext* context, const niPerfTest::BeginMonikerSidebandStreamRequest* request, niPerfTest::BeginMonikerSidebandStreamResponse* response) override;
+    grpc::Status StreamReadWrite(grpc::ServerContext* context, grpc::ServerReaderWriter< ::niPerfTest::MonikerReadResponse, niPerfTest::MonikerWriteRequest>* stream) override;
+    grpc::Status StreamRead(grpc::ServerContext* context, const niPerfTest::MonikerList* request, ::grpc::ServerWriter< niPerfTest::MonikerReadResponse>* writer) override;
+    grpc::Status StreamWrite(grpc::ServerContext* context, grpc::ServerReaderWriter< ::niPerfTest::StreamWriteResponse, niPerfTest::MonikerWriteRequest>* stream) override;
+};

@@ -246,6 +246,66 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier)
+{
+    TestSidebandStreamResponse response;
+    auto sidebandToken = GetOwnerSidebandDataToken(sidebandIdentifier);
+    assert(sidebandToken != 0);
+
+    while (true)
+    {
+        MonikerWriteRequest request;
+        MonikerReadResponse response;
+        ReadSidebandMessage(sidebandToken, &request);
+        if (request.complete())
+        {
+            break;
+        }
+        WriteSidebandMessage(sidebandToken, response);
+    }
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+grpc::Status NIMonikerServer::BeginMonikerSidebandStream(grpc::ServerContext* context, const niPerfTest::BeginMonikerSidebandStreamRequest* request, niPerfTest::BeginMonikerSidebandStreamResponse* response)
+{
+    auto bufferSize = 1024 * 1024;
+
+    auto identifier = InitOwnerSidebandData((::SidebandStrategy)request->strategy(), bufferSize);
+    response->set_strategy(request->strategy());
+    response->set_sideband_identifier(identifier);
+    response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
+    QueueSidebandConnection((::SidebandStrategy)request->strategy(), true, true, bufferSize);
+
+    auto thread = new std::thread(RunSidebandReadWriteLoop, identifier);
+    thread->detach();
+
+    return Status::OK;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+grpc::Status NIMonikerServer::StreamReadWrite(grpc::ServerContext* context, grpc::ServerReaderWriter<::niPerfTest::MonikerReadResponse, niPerfTest::MonikerWriteRequest>* stream)
+{    
+    return Status::OK;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+grpc::Status NIMonikerServer::StreamRead(grpc::ServerContext* context, const niPerfTest::MonikerList* request, ::grpc::ServerWriter<niPerfTest::MonikerReadResponse>* writer)
+{    
+    return Status::OK;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+grpc::Status NIMonikerServer::StreamWrite(grpc::ServerContext* context, grpc::ServerReaderWriter<::niPerfTest::StreamWriteResponse, niPerfTest::MonikerWriteRequest>* stream)
+{    
+    return Status::OK;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 string GetServerAddress(int argc, char** argv)
 {
     string target_str = "0.0.0.0:50051";
@@ -364,6 +424,7 @@ void RunServer(int argc, char **argv, const char* server_address)
 	auto creds = CreateCredentials(argc, argv);
 
 	NIPerfTestServer service;
+    NIMonikerServer monikerService;
 	ServerBuilder builder;
 	builder.AddListeningPort(server_address, creds);
     builder.AddChannelArgument(GRPC_ARG_MINIMAL_STACK, 1);
@@ -383,6 +444,7 @@ void RunServer(int argc, char **argv, const char* server_address)
     // GRPC_ARG_TCP_TX_ZEROCOPY_ENABLED
     // builder.AddChannelArgument();
 	builder.RegisterService(&service);
+	builder.RegisterService(&monikerService);
 
 	// Assemble the server.
 	auto server = builder.BuildAndStart();

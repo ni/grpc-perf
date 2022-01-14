@@ -55,7 +55,6 @@ private:
     std::unique_ptr<niPerfTest::niPerfTestService::Stub> _stub;
 };
 
-
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void NIPerfTestProxyServer::InitStub()

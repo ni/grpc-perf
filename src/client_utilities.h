@@ -51,6 +51,17 @@ public:
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+class MonikerClient
+{
+public:
+    MonikerClient(std::shared_ptr<Channel> channel);
+
+public:
+    std::unique_ptr<MonikerService::Stub> m_Stub;
+};
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void WriteLatencyData(timeVector times, const std::string& fileName);
 void ReadSamples(NIPerfTestClient* client, int numSamples, int numIterations);
 void ReportMBPerSecond(std::chrono::high_resolution_clock::time_point start, std::chrono::high_resolution_clock::time_point end, int numSamples, int numIterations);

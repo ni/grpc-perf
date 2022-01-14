@@ -177,6 +177,13 @@ unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> NIPerfTestCli
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+MonikerClient::MonikerClient(std::shared_ptr<Channel> channel)
+    : m_Stub(MonikerService::NewStub(channel))
+{    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void WriteLatencyData(timeVector times, const string& fileName)
 {
     auto iterations = times.size();

@@ -28,6 +28,13 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
 void WriteSidebandData(int64_t dataToken, uint8_t* bytes, int64_t bytecount);
 void ReadSidebandData(int64_t dataToken, uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
 void CloseSidebandData(int64_t dataToken);
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+int64_t InitClientSidebandData(const BeginMonikerSidebandStreamResponse& response);
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 int RunSidebandSocketsAccept();
 int AcceptSidebandRdmaSendRequests();
 int AcceptSidebandRdmaReceiveRequests();

@@ -106,6 +106,42 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, niPerfTest::SidebandStrategy strategy)
+{
+    ClientContext ctx;
+    BeginMonikerSidebandStreamRequest request;
+    request.set_strategy(strategy);
+    BeginMonikerSidebandStreamResponse response;
+    client.m_Stub->BeginMonikerSidebandStream(&ctx, request, &response);
+
+    timeVector times;
+    times.reserve(LatencyTestIterations);
+
+    auto sidebandToken = InitClientSidebandData(response);
+
+    MonikerWriteRequest sidebandRequest;
+    MonikerReadResponse sidebandResponse;
+    for (int x=0; x<10; ++x)
+    {
+        WriteSidebandMessage(sidebandToken, sidebandRequest);
+        ReadSidebandMessage(sidebandToken, &sidebandResponse);
+    }
+
+    for (int x=0; x<LatencyTestIterations; ++x)
+    {
+        auto start = chrono::high_resolution_clock::now();
+        WriteSidebandMessage(sidebandToken, sidebandRequest);
+        ReadSidebandMessage(sidebandToken, &sidebandResponse);
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+        times.emplace_back(elapsed);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    WriteLatencyData(times, "SidebandLatency.txt");
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, niPerfTest::SidebandStrategy strategy, bool fastMemcpy, const std::string& message)
 {
     cout << "Start Sideband Read Test " << message << endl;

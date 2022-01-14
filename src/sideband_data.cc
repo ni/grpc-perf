@@ -97,6 +97,13 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+int64_t InitClientSidebandData(const BeginMonikerSidebandStreamResponse& response)
+{
+    return InitClientSidebandData(response.connection_url(), (::SidebandStrategy)response.strategy(), response.sideband_identifier(), response.buffer_size());    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void AddServerSidebandSocket(int socket, const std::string& usageId)
 {    
     std::unique_lock<std::mutex> lock(_bufferLockMutex);
