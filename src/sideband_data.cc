@@ -160,7 +160,7 @@ void CloseSidebandData(int64_t dataToken)
 std::string GetConnectionAddress(::SidebandStrategy strategy)
 {
     std::string address;
-    if (strategy == ::SidebandStrategy::RDMA)
+    if (strategy == ::SidebandStrategy::RDMA || strategy == ::SidebandStrategy::RDMA_LOW_LATENCY)
     {
         address = GetRdmaAddress() + ":50060";
     }
