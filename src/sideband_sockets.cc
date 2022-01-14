@@ -33,7 +33,7 @@ void error(const char *msg)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void WriteToSocket(int socketfd, void* buffer, int numBytes)
+void WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
 {
     auto remainingBytes = numBytes;
     while (remainingBytes > 0)
@@ -175,17 +175,33 @@ SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandSe
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::Write(uint8_t* bytes, int bytecount)
+void SocketSidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 {
     WriteToSocket(_socket, bytes, bytecount);    
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
+void SocketSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     ReadFromSocket(_socket, bytes, bufferSize);
     *numBytesRead = bufferSize;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void SocketSidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+{
+    Read(bytes, bufferSize, numBytesRead);    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+int64_t SocketSidebandData::ReadLengthPrefix()
+{
+    int64_t bufferSize;
+    ReadFromSocket(_socket, &bufferSize, sizeof(int64_t));
+    return bufferSize;
 }
 
 //---------------------------------------------------------------------

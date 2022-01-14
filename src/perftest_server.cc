@@ -196,6 +196,8 @@ Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const n
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
     response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
+
+    QueueSidebandConnection((::SidebandStrategy)request->strategy(), true, true, request->num_samples());
 	return Status::OK;
 }
 
@@ -218,6 +220,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
         switch (request.strategy())
         {
             case niPerfTest::SidebandStrategy::RDMA:
+            case niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY:
             case niPerfTest::SidebandStrategy::SOCKETS:
                 stream->Write(response);
                 WriteSidebandData(sidebandToken, buffer, request.num_samples());
@@ -441,8 +444,10 @@ int main(int argc, char **argv)
     auto t = new std::thread(RunSidebandSocketsAccept);
     threads.push_back(t);
 
-    auto t2 = new std::thread(AcceptSidebandRdmaRequests);
+    auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
     threads.push_back(t2);
+    auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
+    threads.push_back(t3);
 
     // localhost testing
     //{

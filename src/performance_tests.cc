@@ -138,7 +138,7 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, niPerfTes
             TestSidebandStreamResponse response;
             stream->Write(readParameters);
             stream->Read(&response);
-            int bytesRead;
+            int64_t bytesRead;
             ReadSidebandData(sidebandToken, buffer, numSamples, &bytesRead);
         }
         auto end = chrono::high_resolution_clock::now();

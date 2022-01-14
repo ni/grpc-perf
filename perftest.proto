@@ -15,6 +15,69 @@ option cc_enable_arenas = true;
 package niPerfTest;
 
 //---------------------------------------------------------------------
+//---------------------------------------------------------------------
+service MonikerService {
+  rpc BeginMonikerSidebandStream(BeginMonikerSidebandStreamRequest) returns (BeginMonikerSidebandStreamResponse) {};
+
+  rpc StreamReadWrite(stream MonikerWriteRequest) returns (stream MonikerReadResponse) {};
+  rpc StreamRead(MonikerList) returns (stream MonikerReadResponse) {};
+  rpc StreamWrite(stream MonikerWriteRequest) returns (stream StreamWriteResponse) {};
+}
+
+enum SidebandStrategy
+{
+  UNKNOWN = 0;
+  GRPC = 1;
+  SHARED_MEMORY = 2;
+  DOUBLE_BUFFERED_SHARED_MEMORY = 3;
+  SOCKETS = 4;
+  HYPERVISOR_SOCKETS = 5;
+  RDMA = 6;
+  RDMA_LOW_LATENCY = 7;
+}
+
+message Moniker {
+  string ServiceLocation = 1;
+  string DataSource = 2;
+  sint64 DataInstance = 3;
+}
+
+message BeginMonikerSidebandStreamRequest {
+  SidebandStrategy strategy = 1;
+}
+
+message BeginMonikerSidebandStreamResponse {  
+  SidebandStrategy strategy = 1;
+  string connection_url = 2;
+  string sideband_identifier = 3;
+  sint64 buffer_size = 4;
+}
+
+message MonikerWriteRequest {
+  oneof WriteData {
+    MonikerList monikers = 1;
+    MonikerWriteData data = 2;
+  }
+}
+
+message MonikerWriteData {
+  repeated google.protobuf.Any Values = 1;
+}
+
+message MonikerReadResponse {
+  repeated google.protobuf.Any Values = 1;
+}
+
+message MonikerList {
+  bool isInitialWrite = 1;
+  repeated Moniker ReadMonikers = 2;
+  repeated Moniker WriteMonikers = 3;
+}
+
+message StreamWriteResponse {
+}
+
+//---------------------------------------------------------------------
 // The niPerfTest service definition.
 //---------------------------------------------------------------------
 service niPerfTestService {
@@ -33,18 +96,6 @@ service niPerfTestService {
   rpc InitiateAcquisition(InitiateAcquisitionRequest) returns (InitiateAcquisitionResponse);
   rpc Read(ReadParameters) returns (ReadResult) {};
   rpc ReadContinuously(ReadContinuouslyParameters) returns (stream ReadContinuouslyResult) {};
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-enum SidebandStrategy
-{
-  UNKNOWN = 0;
-  SHARED_MEMORY = 1;
-  DOUBLE_BUFFERED_SHARED_MEMORY = 2;
-  SOCKETS = 3;
-  HYPERVISOR_SOCKETS = 4;
-  RDMA = 5;
 }
 
 message BeginTestSidebandStreamRequest {

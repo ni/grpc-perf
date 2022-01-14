@@ -13,8 +13,20 @@ class SidebandData
 public:    
     virtual ~SidebandData();
     virtual const std::string& UsageId() = 0;
-    virtual void Write(uint8_t* bytes, int bytecount) = 0;
-    virtual void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) = 0;
+    virtual void Write(const uint8_t* bytes, int64_t bytecount) = 0;
+    virtual void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) = 0;
+    virtual void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) = 0;
+    virtual int64_t ReadLengthPrefix() = 0;
+
+    virtual bool SupportsDirectReadWrite() { return false; }
+    virtual const uint8_t* BeginDirectRead(int64_t byteCount) { return nullptr; }
+    virtual const uint8_t* BeginDirectReadLengthPrefixed(int64_t* bufferSize) { return nullptr; }
+    virtual bool FinishDirectRead() { return false; }
+    virtual uint8_t* BeginDirectWrite() { return nullptr; }
+    virtual bool FinishDirectWrite(int64_t byteCount) { return false; }
+
+public:
+    std::vector<uint8_t> _serializeBuffer;
 };
 
 //---------------------------------------------------------------------
@@ -25,8 +37,17 @@ public:
     SharedMemorySidebandData(const std::string& id, int64_t bufferSize);
     virtual ~SharedMemorySidebandData();
 
-    void Write(uint8_t* bytes, int bytecount) override;
-    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
+    void Write(const uint8_t* bytes, int64_t bytecount) override;
+    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    int64_t ReadLengthPrefix() override;
+
+    bool SupportsDirectReadWrite() override { return true; }
+    const uint8_t* BeginDirectRead(int64_t byteCount) override;
+    const uint8_t* BeginDirectReadLengthPrefixed(int64_t* bufferSize) override;
+    bool FinishDirectRead() override;
+    uint8_t* BeginDirectWrite() override;
+    bool FinishDirectWrite(int64_t byteCount) override;
 
     const std::string& UsageId() override;
     uint8_t* GetBuffer();
@@ -52,8 +73,17 @@ public:
     DoubleBufferedSharedMemorySidebandData(const std::string& id, int64_t bufferSize);
     virtual ~DoubleBufferedSharedMemorySidebandData();
 
-    void Write(uint8_t* bytes, int bytecount) override;
-    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
+    void Write(const uint8_t* bytes, int64_t bytecount) override;
+    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    int64_t ReadLengthPrefix() override;
+
+    bool SupportsDirectReadWrite() override { return true; }
+    const uint8_t* BeginDirectRead(int64_t byteCount) override;
+    const uint8_t* BeginDirectReadLengthPrefixed(int64_t* bufferSize) override;
+    bool FinishDirectRead() override;
+    uint8_t* BeginDirectWrite() override;
+    bool FinishDirectWrite(int64_t byteCount) override;
 
     const std::string& UsageId() override;
 
@@ -75,8 +105,10 @@ public:
     SocketSidebandData(uint64_t socket, const std::string& id);
     virtual ~SocketSidebandData();
 
-    void Write(uint8_t* bytes, int bytecount) override;
-    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
+    void Write(const uint8_t* bytes, int64_t bytecount) override;
+    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    int64_t ReadLengthPrefix() override;
 
     const std::string& UsageId() override;
 
@@ -100,13 +132,21 @@ class RdmaSidebandData : public SidebandData
 public:
     RdmaSidebandData(const std::string& id, RdmaSidebandDataImp* implementation);
     virtual ~RdmaSidebandData();
-
-    void Write(uint8_t* bytes, int bytecount) override;
-    void Read(uint8_t* bytes, int bufferSize, int* numBytesRead) override;
     const std::string& UsageId() override;
 
+    void Write(const uint8_t* bytes, int64_t bytecount) override;
+    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    int64_t ReadLengthPrefix() override;
+
+    bool SupportsDirectReadWrite() override { return true; }
+    const uint8_t* BeginDirectRead(int64_t byteCount) override;
+    const uint8_t* BeginDirectReadLengthPrefixed(int64_t* bufferSize) override;
+    bool FinishDirectRead() override;
+    uint8_t* BeginDirectWrite() override;
+    bool FinishDirectWrite(int64_t byteCount) override;
 public:
-    static RdmaSidebandData* ClientInit(const std::string& sidebandServiceUrl, const std::string& usageId, int64_t bufferSize);
+    static RdmaSidebandData* ClientInit(const std::string& sidebandServiceUrl, bool lowLatency, const std::string& usageId, int64_t bufferSize);
 
 private:
     std::unique_ptr<RdmaSidebandDataImp> _imp;
@@ -119,6 +159,8 @@ void AddServerSidebandSocket(int socket, const std::string& usageId);
 void RegisterSidebandData(SidebandData* sidebandData);
 std::vector<std::string> SplitUrlString(const std::string& s);
 
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 std::string GetConnectionAddress(::SidebandStrategy strategy);
 std::string GetRdmaAddress();
 std::string GetSocketsAddress();

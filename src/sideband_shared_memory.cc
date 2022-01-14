@@ -94,7 +94,7 @@ void SharedMemorySidebandData::Init()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SharedMemorySidebandData::Write(uint8_t* bytes, int bytecount)
+void SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 {    
     auto ptr = GetBuffer();
     if (_useFastMemcpy)
@@ -109,7 +109,7 @@ void SharedMemorySidebandData::Write(uint8_t* bytes, int bytecount)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SharedMemorySidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
+void SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
     auto ptr = GetBuffer();
     if (_useFastMemcpy)
@@ -120,6 +120,66 @@ void SharedMemorySidebandData::Read(uint8_t* bytes, int bufferSize, int* numByte
     {
         memcpy(bytes, ptr, bufferSize);
     }
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+{
+    auto ptr = GetBuffer() + sizeof(int64_t);
+    if (_useFastMemcpy)
+    {
+        memcpy_fast(bytes, ptr, bufferSize);
+    }
+    else
+    {
+        memcpy(bytes, ptr, bufferSize);
+    }
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+int64_t SharedMemorySidebandData::ReadLengthPrefix()
+{
+    auto ptr = GetBuffer();
+    return *reinterpret_cast<int64_t*>(ptr);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+const uint8_t* SharedMemorySidebandData::BeginDirectRead(int64_t byteCount)
+{
+    return GetBuffer();    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+const uint8_t* SharedMemorySidebandData::BeginDirectReadLengthPrefixed(int64_t* bufferSize)
+{
+    auto ptr = GetBuffer();
+    *bufferSize = *reinterpret_cast<int64_t*>(ptr);
+    return ptr + sizeof(int64_t);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+bool SharedMemorySidebandData::FinishDirectRead()
+{
+    return true;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+uint8_t* SharedMemorySidebandData::BeginDirectWrite()
+{
+    return GetBuffer();
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+bool SharedMemorySidebandData::FinishDirectWrite(int64_t byteCount)
+{
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -149,7 +209,7 @@ DoubleBufferedSharedMemorySidebandData* DoubleBufferedSharedMemorySidebandData::
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::Write(uint8_t* bytes, int bytecount)
+void DoubleBufferedSharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 {
     _current->Write(bytes, bytecount);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
@@ -157,10 +217,62 @@ void DoubleBufferedSharedMemorySidebandData::Write(uint8_t* bytes, int bytecount
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::Read(uint8_t* bytes, int bufferSize, int* numBytesRead)
+void DoubleBufferedSharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
     _current->Read(bytes, bufferSize, numBytesRead);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void DoubleBufferedSharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+{
+    _current->ReadFromLengthPrefixed(bytes, bufferSize, numBytesRead);
+    _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+int64_t DoubleBufferedSharedMemorySidebandData::ReadLengthPrefix()
+{
+    return _current->ReadLengthPrefix();
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+const uint8_t* DoubleBufferedSharedMemorySidebandData::BeginDirectRead(int64_t byteCount)
+{
+    return _current->BeginDirectRead(byteCount);    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+const uint8_t* DoubleBufferedSharedMemorySidebandData::BeginDirectReadLengthPrefixed(int64_t* bufferSize)
+{
+    return _current->BeginDirectReadLengthPrefixed(bufferSize);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+bool DoubleBufferedSharedMemorySidebandData::FinishDirectRead()
+{    
+    _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+    return true;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+uint8_t* DoubleBufferedSharedMemorySidebandData::BeginDirectWrite()
+{
+    return _current->BeginDirectWrite();    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+bool DoubleBufferedSharedMemorySidebandData::FinishDirectWrite(int64_t byteCount)
+{    
+    _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+    return true;
 }
 
 //---------------------------------------------------------------------
