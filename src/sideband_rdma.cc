@@ -196,7 +196,8 @@ int64_t RdmaSidebandDataImp::_nextConnectBufferSize;
 RdmaSidebandDataImp::RdmaSidebandDataImp(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, bool lowLatency, int64_t bufferSize) :
     _connectedWriteSession(connectedWriteSession),
     _connectedReadSession(connectedReadSession),
-    _lowLatency(lowLatency)
+    _lowLatency(lowLatency),
+    _receiveSemaphore(0)
 {
     _bufferSize = bufferSize;
     _readBuffer.reserve(_bufferSize);
