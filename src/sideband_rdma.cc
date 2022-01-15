@@ -95,8 +95,8 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
     assert(result == nirdma_Error_Success);
 
     nirdma_Session clientWriteSession = nirdma_InvalidSession;
-    result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientReadSession);   
-    result = nirdma_Connect(clientReadSession, nirdma_Direction_Send, tokens[0].c_str(), std::stoi(tokens[1])+1, timeoutMs);
+    result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientWriteSession);
+    result = nirdma_Connect(clientWriteSession, nirdma_Direction_Send, tokens[0].c_str(), std::stoi(tokens[1])+1, timeoutMs);
     if (result != nirdma_Error_Success)
     {
         std::cout << "Failed to connect: " << result << std::endl;
