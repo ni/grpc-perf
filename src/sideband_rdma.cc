@@ -15,10 +15,6 @@
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-#pragma comment(lib, "D:/dev/chrisc-grpc-perf/src/rdma.lib")
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 int32_t timeoutMs = -1;
 int MaxConcurrentTransactions = 1;
 
@@ -93,20 +89,20 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
     nirdma_Session clientReadSession = nirdma_InvalidSession;
     auto result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientReadSession);   
     result = nirdma_Connect(clientReadSession, nirdma_Direction_Receive, tokens[0].c_str(), std::stoi(tokens[1]), timeoutMs);
-    if (result != 0)
+    if (result != nirdma_Error_Success)
     {
         std::cout << "Failed to connect: " << result << std::endl;
     }
-    assert(result);
+    assert(result == nirdma_Error_Success);
 
     nirdma_Session clientWriteSession = nirdma_InvalidSession;
-    result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientReadSession);   
-    result = nirdma_Connect(clientReadSession, nirdma_Direction_Send, tokens[0].c_str(), std::stoi(tokens[1])+1, timeoutMs);
-    if (result != 0)
+    result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientWriteSession);
+    result = nirdma_Connect(clientWriteSession, nirdma_Direction_Send, tokens[0].c_str(), std::stoi(tokens[1])+1, timeoutMs);
+    if (result != nirdma_Error_Success)
     {
         std::cout << "Failed to connect: " << result << std::endl;
     }
-    assert(result);
+    assert(result == nirdma_Error_Success);
 
     auto sidebandData = RdmaSidebandDataImp::ClientInitFromConnection(clientWriteSession, clientReadSession, lowLatency, bufferSize);
     return sidebandData;

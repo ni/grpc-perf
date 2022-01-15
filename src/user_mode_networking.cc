@@ -22,8 +22,6 @@
 #include <mutex>
 #include <detours.h>
 
-#pragma comment(lib, "d:/dev/detours.lib")
-
 using std::endl;
 
 //#ifdef _DEBUG

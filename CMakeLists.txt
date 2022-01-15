@@ -8,11 +8,15 @@ if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   set(RDMA_LIB "libnirdma.so")
   SET(LVRT_LIB "liblvrt.so")
+  SET(DETOURS_LIB "")
 else()
   cmake_policy(SET CMP0091 NEW)
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  SET(DETOURS_LIB "detours.lib")
+  set(RDMA_LIB "rdma.lib")
+  SET(LVRT_LIB "")
 endif()
 
 find_package(Threads REQUIRED)
@@ -89,6 +93,7 @@ target_link_libraries(perftest_server
   ${_PROTOBUF_LIBPROTOBUF}
   ${RDMA_LIB}
   ${LVRT_LIB}
+  ${DETOURS_LIB}
   )
 
 #----------------------------------------------------------------------
