@@ -119,7 +119,14 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
 
     auto sidebandToken = InitClientSidebandData(response);
 
+    ReadResult toPack;
+    toPack.set_status(42);
+    toPack.add_samples(42.42);
+
     MonikerWriteRequest sidebandRequest;
+    auto value = sidebandRequest.mutable_data()->add_values();
+    value->PackFrom(toPack);
+
     MonikerReadResponse sidebandResponse;
     for (int x=0; x<10; ++x)
     {
