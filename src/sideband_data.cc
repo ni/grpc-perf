@@ -226,18 +226,17 @@ int64_t InitMonikerSidebandData(const BeginMonikerSidebandStreamResponse& initRe
 int64_t WriteSidebandMessage(int64_t dataToken, const google::protobuf::MessageLite& message)
 {
     auto sidebandData = reinterpret_cast<SidebandData*>(dataToken);
-    auto byteSize = message.ByteSizeLong() + sizeof(int64_t);
+    auto byteSize = message.ByteSizeLong();
     if (sidebandData->SupportsDirectReadWrite())
     {
         auto buffer = sidebandData->BeginDirectWrite();
-        message.SerializeToArray(buffer + sizeof(int64_t), byteSize - sizeof(int64_t));
-        *(reinterpret_cast<int64_t*>(buffer)) = byteSize;
+        message.SerializeToArray(buffer, byteSize);
         sidebandData->FinishDirectWrite(byteSize);
     }
     else
     {
-        message.SerializeToArray(sidebandData->_serializeBuffer.data(), byteSize - sizeof(int64_t));
-        sidebandData->Write(sidebandData->_serializeBuffer.data(), byteSize);
+        message.SerializeToArray(sidebandData->_serializeBuffer.data(), byteSize);
+        sidebandData->WriteLengthPrefixed(sidebandData->_serializeBuffer.data(), byteSize);
     }
     return byteSize;
 }

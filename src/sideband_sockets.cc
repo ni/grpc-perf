@@ -223,9 +223,9 @@ SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandSe
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::Write(const uint8_t* bytes, int64_t bytecount)
+void SocketSidebandData::Write(const uint8_t* bytes, int64_t byteCount)
 {
-    WriteToSocket(_socket, bytes, bytecount);    
+    WriteToSocket(_socket, bytes, byteCount);    
 }
 
 //---------------------------------------------------------------------
@@ -234,6 +234,14 @@ void SocketSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBy
 {
     ReadFromSocket(_socket, bytes, bufferSize);
     *numBytesRead = bufferSize;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void SocketSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+{
+    WriteToSocket(_socket, &byteCount, sizeof(int64_t));    
+    WriteToSocket(_socket, bytes, byteCount);    
 }
 
 //---------------------------------------------------------------------

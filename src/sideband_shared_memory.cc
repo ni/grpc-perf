@@ -138,6 +138,27 @@ void SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t*
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void SharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+{    
+    auto ptr = GetBuffer();
+    *reinterpret_cast<int64_t*>(ptr) = byteCount;
+    ptr += sizeof(int64_t);
+#ifdef _WIN32
+    if (_useFastMemcpy)
+    {
+        memcpy_fast(ptr, bytes, byteCount);
+    }
+    else
+    {
+        memcpy(ptr, bytes, byteCount);
+    }
+#else
+        memcpy(ptr, bytes, byteCount);
+#endif
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     auto ptr = GetBuffer() + sizeof(int64_t);
@@ -223,9 +244,9 @@ DoubleBufferedSharedMemorySidebandData* DoubleBufferedSharedMemorySidebandData::
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
+void DoubleBufferedSharedMemorySidebandData::Write(const uint8_t* bytes, int64_t byteCount)
 {
-    _current->Write(bytes, bytecount);
+    _current->Write(bytes, byteCount);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
 }
 
@@ -235,6 +256,15 @@ void DoubleBufferedSharedMemorySidebandData::Read(uint8_t* bytes, int64_t buffer
 {    
     _current->Read(bytes, bufferSize, numBytesRead);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void DoubleBufferedSharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+{    
+    _current->Write(reinterpret_cast<const uint8_t*>(&byteCount), sizeof(int64_t));
+    _current->Write(bytes, byteCount);
+    _current = _current == &_bufferA ? &_bufferB : &_bufferA;
 }
 
 //---------------------------------------------------------------------
