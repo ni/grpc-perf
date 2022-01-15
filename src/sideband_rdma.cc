@@ -32,6 +32,7 @@ public:
 
     void Write(const uint8_t* bytes, int64_t bytecount);
     void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
+    void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount);
     void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
     int64_t ReadLengthPrefix();
 
@@ -123,6 +124,13 @@ void RdmaSidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 void RdmaSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     _imp->Read(bytes, bufferSize, numBytesRead);    
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void RdmaSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+{
+    _imp->WriteLengthPrefixed(bytes, byteCount);
 }
 
 //---------------------------------------------------------------------
@@ -292,8 +300,9 @@ void RdmaSidebandDataImp::ServerReceiveData(void* context1, void* context2, int3
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t bytecount)
-{    
+void RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t byteCount)
+{
+    memcpy(_writeBuffer.data(), bytes, byteCount);
     auto result = nirdma_QueueExternalBufferRegion(_connectedWriteSession, _writeBuffer.data(), _bufferSize, nullptr, timeoutMs);
     if (result != 0)
     {
@@ -325,9 +334,22 @@ void RdmaSidebandDataImp::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numB
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void RdmaSidebandDataImp::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+{
+    *reinterpret_cast<int64_t*>(_writeBuffer.data()) = byteCount;
+    memcpy(_writeBuffer.data() + sizeof(int64_t), bytes, byteCount);    
+    auto result = nirdma_QueueExternalBufferRegion(_connectedWriteSession, _writeBuffer.data(), _bufferSize, nullptr, timeoutMs);
+    if (result != 0)
+    {
+        std::cout << "Failed nirdma_QueueExternalBufferRegion: " << result << std::endl;
+    }
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void RdmaSidebandDataImp::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
-    memcpy(bytes, _readBuffer.data(), bufferSize);
+    memcpy(bytes, _readBuffer.data() + sizeof(int64_t), bufferSize);
     *numBytesRead = bufferSize;
 }
 
@@ -367,13 +389,14 @@ bool RdmaSidebandDataImp::FinishDirectRead()
 //---------------------------------------------------------------------
 uint8_t* RdmaSidebandDataImp::BeginDirectWrite()
 {
-    return _writeBuffer.data();    
+    return _writeBuffer.data() + sizeof(int64_t);
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 bool RdmaSidebandDataImp::FinishDirectWrite(int64_t byteCount)
 {
+    *reinterpret_cast<int64_t*>(_readBuffer.data()) = byteCount;
     auto result = nirdma_QueueExternalBufferRegion(_connectedWriteSession, _writeBuffer.data(), _bufferSize, nullptr, timeoutMs);
     if (result != 0)
     {

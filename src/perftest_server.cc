@@ -275,6 +275,7 @@ grpc::Status NIMonikerServer::BeginMonikerSidebandStream(grpc::ServerContext* co
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
     response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
+    response->set_buffer_size(bufferSize);
     QueueSidebandConnection((::SidebandStrategy)request->strategy(), true, true, bufferSize);
 
     auto thread = new std::thread(RunSidebandReadWriteLoop, identifier);
