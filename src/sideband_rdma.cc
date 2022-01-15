@@ -396,7 +396,7 @@ uint8_t* RdmaSidebandDataImp::BeginDirectWrite()
 //---------------------------------------------------------------------
 bool RdmaSidebandDataImp::FinishDirectWrite(int64_t byteCount)
 {
-    *reinterpret_cast<int64_t*>(_readBuffer.data()) = byteCount;
+    *reinterpret_cast<int64_t*>(_writeBuffer.data()) = byteCount;
     auto result = nirdma_QueueExternalBufferRegion(_connectedWriteSession, _writeBuffer.data(), _bufferSize, nullptr, timeoutMs);
     if (result != 0)
     {
