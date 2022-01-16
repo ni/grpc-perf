@@ -41,15 +41,7 @@
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void error(const char *msg)
-{
-    perror(msg);
-    exit(1);
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-void WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
+bool WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
 {
     auto remainingBytes = numBytes;
     while (remainingBytes > 0)
@@ -58,15 +50,16 @@ void WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
         if (written < 0)
         {
             std::cout << "Error writing to buffer";
-            error(0);
+            return false;
         }
         remainingBytes -= written;
     }
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void ReadFromSocket(int socket, void* buffer, int count)
+bool ReadFromSocket(int socket, void* buffer, int count)
 {
     auto totalToRead = count;
     while (totalToRead > 0)
@@ -80,10 +73,11 @@ void ReadFromSocket(int socket, void* buffer, int count)
         if (n < 0)
         {
             std::cout << "Failed To read." << std::endl;
-            error(0);
+            return false;
         }
         totalToRead -= n;
     }
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -223,39 +217,47 @@ SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandSe
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::Write(const uint8_t* bytes, int64_t byteCount)
+bool SocketSidebandData::Write(const uint8_t* bytes, int64_t byteCount)
 {
-    WriteToSocket(_socket, bytes, byteCount);    
+    return WriteToSocket(_socket, bytes, byteCount);    
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool SocketSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
-    ReadFromSocket(_socket, bytes, bufferSize);
-    *numBytesRead = bufferSize;
+    if (ReadFromSocket(_socket, bytes, bufferSize))
+    {
+        *numBytesRead = bufferSize;
+        return true;
+    }
+    return false;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+bool SocketSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
 {
-    WriteToSocket(_socket, &byteCount, sizeof(int64_t));    
-    WriteToSocket(_socket, bytes, byteCount);    
+    auto result = WriteToSocket(_socket, &byteCount, sizeof(int64_t));    
+    if (result)
+    {
+        result = WriteToSocket(_socket, bytes, byteCount);    
+    }
+    return result;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SocketSidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool SocketSidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
-    Read(bytes, bufferSize, numBytesRead);    
+    return Read(bytes, bufferSize, numBytesRead);    
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int64_t SocketSidebandData::ReadLengthPrefix()
 {
-    int64_t bufferSize;
+    int64_t bufferSize = 0;
     ReadFromSocket(_socket, &bufferSize, sizeof(int64_t));
     return bufferSize;
 }
@@ -290,7 +292,8 @@ int RunSidebandSocketsAccept()
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd < 0)
     {
-       error("ERROR opening socket");
+       std::cout << "ERROR opening socket" << std::endl;
+       return -1;
     }
 
     memset((char *) &serv_addr, 0, sizeof(serv_addr));
@@ -302,7 +305,8 @@ int RunSidebandSocketsAccept()
 
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     {
-       error("ERROR on binding");
+       std::cout << "ERROR on binding" << std::endl;
+       return -1;
     }
 
     listen(sockfd, 5);
@@ -313,7 +317,8 @@ int RunSidebandSocketsAccept()
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0)
         { 
-            error("ERROR on accept");
+            std::cout << "ERROR on accept" << std::endl;
+            return -1;
         }
         std::cout << "Connection!" << std::endl;
 

@@ -246,8 +246,18 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier)
+void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandStrategy strategy)
 {
+#ifndef _WIN32
+    if (strategy == ::SidebandStrategy::RDMA_LOW_LATENCY)
+    {
+        cpu_set_t cpuSet;
+        CPU_ZERO(&cpuSet);
+        CPU_SET(4, &cpuSet);
+        sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
+    }
+#endif
+
     TestSidebandStreamResponse response;
     auto sidebandToken = GetOwnerSidebandDataToken(sidebandIdentifier);
     assert(sidebandToken != 0);
@@ -256,13 +266,22 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier)
     {
         MonikerWriteRequest request;
         MonikerReadResponse response;
-        ReadSidebandMessage(sidebandToken, &request);
+        if (!ReadSidebandMessage(sidebandToken, &request))
+        {
+            break;
+        }
         if (request.complete())
         {
             break;
         }
-        WriteSidebandMessage(sidebandToken, response);
+        auto result = response.add_values();
+        result->CopyFrom(request.data().values().at(0));
+        if (!WriteSidebandMessage(sidebandToken, response))
+        {
+            break;
+        }
     }
+    CloseSidebandData(sidebandToken);
 }
 
 //---------------------------------------------------------------------
@@ -270,15 +289,16 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier)
 grpc::Status NIMonikerServer::BeginMonikerSidebandStream(grpc::ServerContext* context, const niPerfTest::BeginMonikerSidebandStreamRequest* request, niPerfTest::BeginMonikerSidebandStreamResponse* response)
 {
     auto bufferSize = 1024 * 1024;
+    auto strategy = static_cast<::SidebandStrategy>(request->strategy());
 
-    auto identifier = InitOwnerSidebandData((::SidebandStrategy)request->strategy(), bufferSize);
+    auto identifier = InitOwnerSidebandData(strategy, bufferSize);
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
-    response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
+    response->set_connection_url(GetConnectionAddress(strategy));
     response->set_buffer_size(bufferSize);
-    QueueSidebandConnection((::SidebandStrategy)request->strategy(), true, true, bufferSize);
+    QueueSidebandConnection(strategy, true, true, bufferSize);
 
-    auto thread = new std::thread(RunSidebandReadWriteLoop, identifier);
+    auto thread = new std::thread(RunSidebandReadWriteLoop, identifier, strategy);
     thread->detach();
 
     return Status::OK;
@@ -461,7 +481,6 @@ void InitDetours();
 int main(int argc, char **argv)
 {
     //InitDetours();
-
     //grpc_init();
     //grpc_timer_manager_set_threading(false);
     //grpc_core::Executor::SetThreadingDefault(false);
@@ -477,10 +496,9 @@ int main(int argc, char **argv)
     // CPU_SET(2, &cpuSet);
     // sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
 #else
-    DWORD dwError, dwPriClass;
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
     {
-        dwError = GetLastError();
+        auto dwError = GetLastError();
         if( ERROR_PROCESS_MODE_ALREADY_BACKGROUND == dwError)
             cout << "Already in background mode" << endl;
         else

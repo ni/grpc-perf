@@ -100,9 +100,13 @@ void SharedMemorySidebandData::Init()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
+bool SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 {    
     auto ptr = GetBuffer();
+    if (!ptr)
+    {
+        return false;
+    }
 #ifdef _WIN32
     if (_useFastMemcpy)
     {
@@ -115,13 +119,18 @@ void SharedMemorySidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 #else
         memcpy(ptr, bytes, bytecount);
 #endif
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
     auto ptr = GetBuffer();
+    if (!ptr)
+    {
+        return false;
+    }
 #ifdef _WIN32
     if (_useFastMemcpy)
     {
@@ -134,13 +143,18 @@ void SharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t*
 #else
     memcpy(bytes, ptr, bufferSize);
 #endif
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+bool SharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
 {    
     auto ptr = GetBuffer();
+    if (!ptr)
+    {
+        return false;
+    }
     *reinterpret_cast<int64_t*>(ptr) = byteCount;
     ptr += sizeof(int64_t);
 #ifdef _WIN32
@@ -155,13 +169,18 @@ void SharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t
 #else
         memcpy(ptr, bytes, byteCount);
 #endif
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     auto ptr = GetBuffer() + sizeof(int64_t);
+    if (!ptr)
+    {
+        return false;
+    }
     if (_useFastMemcpy)
     {
         memcpy_fast(bytes, ptr, bufferSize);
@@ -170,6 +189,7 @@ void SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bu
     {
         memcpy(bytes, ptr, bufferSize);
     }
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -192,6 +212,10 @@ const uint8_t* SharedMemorySidebandData::BeginDirectRead(int64_t byteCount)
 const uint8_t* SharedMemorySidebandData::BeginDirectReadLengthPrefixed(int64_t* bufferSize)
 {
     auto ptr = GetBuffer();
+    if (!ptr)
+    {
+        return nullptr;
+    }
     *bufferSize = *reinterpret_cast<int64_t*>(ptr);
     return ptr + sizeof(int64_t);
 }
@@ -244,35 +268,47 @@ DoubleBufferedSharedMemorySidebandData* DoubleBufferedSharedMemorySidebandData::
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::Write(const uint8_t* bytes, int64_t byteCount)
+bool DoubleBufferedSharedMemorySidebandData::Write(const uint8_t* bytes, int64_t byteCount)
 {
-    _current->Write(bytes, byteCount);
+    auto result = _current->Write(bytes, byteCount);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+    return result;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool DoubleBufferedSharedMemorySidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
-    _current->Read(bytes, bufferSize, numBytesRead);
+    auto result = _current->Read(bytes, bufferSize, numBytesRead);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+    return result;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+bool DoubleBufferedSharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
 {    
-    _current->Write(reinterpret_cast<const uint8_t*>(&byteCount), sizeof(int64_t));
-    _current->Write(bytes, byteCount);
+    auto result = _current->Write(reinterpret_cast<const uint8_t*>(&byteCount), sizeof(int64_t));
+    if (!result)
+    {
+        return false;
+    }
+    result = _current->Write(bytes, byteCount);
+    if (!result)
+    {
+        return false;
+    }
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void DoubleBufferedSharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool DoubleBufferedSharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
-    _current->ReadFromLengthPrefixed(bytes, bufferSize, numBytesRead);
+    auto result = _current->ReadFromLengthPrefixed(bytes, bufferSize, numBytesRead);
     _current = _current == &_bufferA ? &_bufferB : &_bufferA;    
+    return result;
 }
 
 //---------------------------------------------------------------------

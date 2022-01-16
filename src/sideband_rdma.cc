@@ -26,10 +26,10 @@ public:
     RdmaSidebandDataImp(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, bool lowLatency, int64_t bufferSize);
     ~RdmaSidebandDataImp();
 
-    void Write(const uint8_t* bytes, int64_t bytecount);
-    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
-    void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount);
-    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
+    bool Write(const uint8_t* bytes, int64_t bytecount);
+    bool Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
+    bool WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount);
+    bool ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead);
     int64_t ReadLengthPrefix();
 
     const uint8_t* BeginDirectRead(int64_t byteCount);
@@ -81,6 +81,10 @@ RdmaSidebandData::~RdmaSidebandData()
 //---------------------------------------------------------------------
 RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServiceUrl, bool lowLatency, const std::string& usageId, int64_t bufferSize)
 {
+#ifdef _WIN32
+    lowLatency = false;
+#endif
+
     auto localAddress = GetRdmaAddress();
     auto tokens = SplitUrlString(sidebandServiceUrl);
 
@@ -94,6 +98,17 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
         std::cout << "Failed to connect: " << result << std::endl;
     }
     assert(result == nirdma_Error_Success);
+
+    if (lowLatency)
+    {
+        bool usePooling = true;
+        result = nirdma_SetProperty(clientReadSession, nirdma_Property_UseRxPolling, &usePooling, sizeof(bool));
+        if (result != nirdma_Error_Success)
+        {
+            std::cout << "Failed to connect: " << result << std::endl;
+        }
+        assert(result == nirdma_Error_Success);
+    }
 
     nirdma_Session clientWriteSession = nirdma_InvalidSession;
     result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientWriteSession);
@@ -110,30 +125,30 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandData::Write(const uint8_t* bytes, int64_t bytecount)
+bool RdmaSidebandData::Write(const uint8_t* bytes, int64_t bytecount)
 {
-    _imp->Write(bytes, bytecount);
+    return _imp->Write(bytes, bytecount);
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool RdmaSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
-    _imp->Read(bytes, bufferSize, numBytesRead);    
+    return _imp->Read(bytes, bufferSize, numBytesRead);    
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+bool RdmaSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
 {
-    _imp->WriteLengthPrefixed(bytes, byteCount);
+    return _imp->WriteLengthPrefixed(bytes, byteCount);
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool RdmaSidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
-    _imp->ReadFromLengthPrefixed(bytes, bufferSize, numBytesRead);    
+    return _imp->ReadFromLengthPrefixed(bytes, bufferSize, numBytesRead);    
 }
 
 //---------------------------------------------------------------------
@@ -248,7 +263,11 @@ void RdmaSidebandDataImp::QueueSidebandConnection(::SidebandStrategy strategy, b
     _rdmaConnectQueue.wait();
     _pendingWriteSession = nirdma_InvalidSession;
     _pendingReadSession = nirdma_InvalidSession;
-    _nextConnectLowLatency = true;
+#ifdef _WIN32
+    _nextConnectLowLatency = false;
+#else
+    _nextConnectLowLatency = strategy == ::SidebandStrategy::RDMA_LOW_LATENCY;
+#endif
     _nextConnectBufferSize = bufferSize;
     _waitForReaderConnection = waitForReader;
     _waitForWriteConnection = waitForWriter;
@@ -279,6 +298,16 @@ RdmaSidebandData* RdmaSidebandDataImp::InitFromConnection(nirdma_Session connect
     if ((_pendingWriteSession != nirdma_InvalidSession || !_waitForWriteConnection) &&
         (_pendingReadSession != nirdma_InvalidSession || !_waitForReaderConnection))
     {
+        if (_nextConnectLowLatency && _pendingReadSession != nirdma_InvalidSession)
+        {
+            bool usePooling = true;
+            auto result = nirdma_SetProperty(_pendingReadSession, nirdma_Property_UseRxPolling, &usePooling, sizeof(bool));
+            if (result != nirdma_Error_Success)
+            {
+                std::cout << "Failed to connect: " << result << std::endl;
+            }
+            assert(result == nirdma_Error_Success);
+        }
         auto imp = new RdmaSidebandDataImp(_pendingWriteSession, _pendingReadSession, _nextConnectLowLatency, _nextConnectBufferSize);
         auto sidebandData = new RdmaSidebandData("TEST_RDMA", imp);
         RegisterSidebandData(sidebandData);
@@ -296,41 +325,52 @@ void RdmaSidebandDataImp::ServerReceiveData(void* context1, void* context2, int3
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t byteCount)
+bool RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t byteCount)
 {
     memcpy(_writeBuffer.data(), bytes, byteCount);
     auto result = nirdma_QueueExternalBufferRegion(_connectedWriteSession, _writeBuffer.data(), byteCount, nullptr, timeoutMs);
     if (result != 0)
     {
         std::cout << "Failed nirdma_QueueExternalBufferRegion: " << result << std::endl;
+        return false;
     }
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandDataImp::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
-{    
-    nirdma_BufferCompletionCallbackData bufferReady;
-    bufferReady.callbackFunction = RdmaSidebandDataImp::ServerReceiveData;
-    bufferReady.context1 = this;
-    bufferReady.context2 = nullptr;
-
-    auto result = nirdma_QueueExternalBufferRegion(_connectedReadSession, _readBuffer.data(), _bufferSize, &bufferReady, timeoutMs);
+bool RdmaSidebandDataImp::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+{
+    nirdma_BufferCompletionCallbackData* bufferReadyPtr = nullptr;
+    if (_lowLatency)
+    {
+        nirdma_BufferCompletionCallbackData bufferReady;
+        bufferReady.callbackFunction = RdmaSidebandDataImp::ServerReceiveData;
+        bufferReady.context1 = this;
+        bufferReady.context2 = nullptr;
+        bufferReadyPtr = &bufferReady;
+    }
+    auto result = nirdma_QueueExternalBufferRegion(_connectedReadSession, _readBuffer.data(), _bufferSize, bufferReadyPtr, timeoutMs);
     if (result != 0)
     {
         std::cout << "Failed nirdma_QueueExternalBufferRegion: " << result << std::endl;
+        return false;
     }
-    _receiveSemaphore.wait();
+    if (!_lowLatency)
+    {        
+        _receiveSemaphore.wait();
+    }
     if (bytes != nullptr)
     {
         memcpy(bytes, _readBuffer.data(), bufferSize);
         *numBytesRead = bufferSize;
     }
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandDataImp::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
+bool RdmaSidebandDataImp::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
 {
     *reinterpret_cast<int64_t*>(_writeBuffer.data()) = byteCount;
     memcpy(_writeBuffer.data() + sizeof(int64_t), bytes, byteCount);    
@@ -338,22 +378,28 @@ void RdmaSidebandDataImp::WriteLengthPrefixed(const uint8_t* bytes, int64_t byte
     if (result != 0)
     {
         std::cout << "Failed nirdma_QueueExternalBufferRegion: " << result << std::endl;
+        return false;
     }
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandDataImp::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
+bool RdmaSidebandDataImp::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {    
     memcpy(bytes, _readBuffer.data() + sizeof(int64_t), bufferSize);
     *numBytesRead = bufferSize;
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int64_t RdmaSidebandDataImp::ReadLengthPrefix()
 {    
-    Read(nullptr, 0, nullptr);
+    if (!Read(nullptr, 0, nullptr))
+    {
+        return false;
+    }
     return *reinterpret_cast<int64_t*>(_readBuffer.data());
 }
 
@@ -361,7 +407,10 @@ int64_t RdmaSidebandDataImp::ReadLengthPrefix()
 //---------------------------------------------------------------------
 const uint8_t* RdmaSidebandDataImp::BeginDirectRead(int64_t byteCount)
 {    
-    Read(nullptr, 0, nullptr);
+    if (!Read(nullptr, 0, nullptr))
+    {
+        return nullptr;
+    }
     return _readBuffer.data();
 }
 
@@ -369,7 +418,10 @@ const uint8_t* RdmaSidebandDataImp::BeginDirectRead(int64_t byteCount)
 //---------------------------------------------------------------------
 const uint8_t* RdmaSidebandDataImp::BeginDirectReadLengthPrefixed(int64_t* bufferSize)
 {
-    Read(nullptr, 0, nullptr);
+    if (!Read(nullptr, 0, nullptr))
+    {
+        return nullptr;
+    }
     *bufferSize = *reinterpret_cast<int64_t*>(_readBuffer.data());
     return _readBuffer.data() + sizeof(int64_t);
 }
@@ -397,6 +449,7 @@ bool RdmaSidebandDataImp::FinishDirectWrite(int64_t byteCount)
     if (result != 0)
     {
         std::cout << "Failed nirdma_QueueExternalBufferRegion: " << result << std::endl;
+        return false;
     }
     return true;
 }

@@ -13,10 +13,10 @@ class SidebandData
 public:    
     virtual ~SidebandData();
     virtual const std::string& UsageId() = 0;
-    virtual void Write(const uint8_t* bytes, int64_t byteCount) = 0;
-    virtual void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) = 0;
-    virtual void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) = 0;
-    virtual void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) = 0;
+    virtual bool Write(const uint8_t* bytes, int64_t byteCount) = 0;
+    virtual bool Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) = 0;
+    virtual bool WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) = 0;
+    virtual bool ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) = 0;
     virtual int64_t ReadLengthPrefix() = 0;
 
     virtual bool SupportsDirectReadWrite() { return false; }
@@ -38,10 +38,10 @@ public:
     SharedMemorySidebandData(const std::string& id, int64_t bufferSize);
     virtual ~SharedMemorySidebandData();
 
-    void Write(const uint8_t* bytes, int64_t byteCount) override;
-    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
-    void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
-    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool Write(const uint8_t* bytes, int64_t byteCount) override;
+    bool Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
+    bool ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
     int64_t ReadLengthPrefix() override;
 
     bool SupportsDirectReadWrite() override { return true; }
@@ -76,10 +76,10 @@ public:
     DoubleBufferedSharedMemorySidebandData(const std::string& id, int64_t bufferSize);
     virtual ~DoubleBufferedSharedMemorySidebandData();
 
-    void Write(const uint8_t* bytes, int64_t byteCount) override;
-    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
-    void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
-    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool Write(const uint8_t* bytes, int64_t byteCount) override;
+    bool Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
+    bool ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
     int64_t ReadLengthPrefix() override;
 
     bool SupportsDirectReadWrite() override { return true; }
@@ -109,10 +109,10 @@ public:
     SocketSidebandData(uint64_t socket, const std::string& id);
     virtual ~SocketSidebandData();
 
-    void Write(const uint8_t* bytes, int64_t byteCount) override;
-    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
-    void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
-    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool Write(const uint8_t* bytes, int64_t byteCount) override;
+    bool Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
+    bool ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
     int64_t ReadLengthPrefix() override;
 
     const std::string& UsageId() override;
@@ -139,10 +139,10 @@ public:
     virtual ~RdmaSidebandData();
     const std::string& UsageId() override;
 
-    void Write(const uint8_t* bytes, int64_t byteCount) override;
-    void Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
-    void WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
-    void ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool Write(const uint8_t* bytes, int64_t byteCount) override;
+    bool Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
+    bool WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount) override;
+    bool ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead) override;
     int64_t ReadLengthPrefix() override;
 
     bool SupportsDirectReadWrite() override { return true; }

@@ -121,7 +121,10 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
 
     ReadResult toPack;
     toPack.set_status(42);
-    toPack.add_samples(42.42);
+    for (int x=0; x<numSamples; ++x)
+    {
+        toPack.add_samples(x);
+    }
 
     MonikerWriteRequest sidebandRequest;
     auto value = sidebandRequest.mutable_data()->add_values();
@@ -143,7 +146,9 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
         auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
         times.emplace_back(elapsed);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    sidebandRequest.set_complete(true);
+    WriteSidebandMessage(sidebandToken, sidebandRequest);
+    CloseSidebandData(sidebandToken);
     WriteLatencyData(times, "SidebandLatency.txt");
 }
 
