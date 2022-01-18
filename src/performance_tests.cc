@@ -136,7 +136,7 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
         WriteSidebandMessage(sidebandToken, sidebandRequest);
         ReadSidebandMessage(sidebandToken, &sidebandResponse);
     }
-
+    
     for (int x=0; x<LatencyTestIterations; ++x)
     {
         auto start = chrono::high_resolution_clock::now();

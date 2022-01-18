@@ -167,7 +167,7 @@ bool SharedMemorySidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t
         memcpy(ptr, bytes, byteCount);
     }
 #else
-        memcpy(ptr, bytes, byteCount);
+    memcpy(ptr, bytes, byteCount);
 #endif
     return true;
 }
@@ -181,6 +181,7 @@ bool SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bu
     {
         return false;
     }
+#ifdef _WIN32
     if (_useFastMemcpy)
     {
         memcpy_fast(bytes, ptr, bufferSize);
@@ -189,6 +190,9 @@ bool SharedMemorySidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bu
     {
         memcpy(bytes, ptr, bufferSize);
     }
+#else
+    memcpy(bytes, ptr, bufferSize);
+#endif
     return true;
 }
 

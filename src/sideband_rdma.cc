@@ -92,10 +92,17 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
 
     nirdma_Session clientReadSession = nirdma_InvalidSession;
     auto result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientReadSession);   
+    if (result != nirdma_Error_Success)
+    {
+        std::cout << "Failed to create connector session: " << result << std::endl;
+    }
+    std::cout << "Connecting to: " << tokens[0] << ":" << tokens[1] << " For Receive" << std::endl;
     result = nirdma_Connect(clientReadSession, nirdma_Direction_Receive, tokens[0].c_str(), std::stoi(tokens[1]), timeoutMs);
     if (result != nirdma_Error_Success)
     {
-        std::cout << "Failed to connect: " << result << std::endl;
+        char errorMessage[4096];
+        nirdma_GetLastErrorString(errorMessage, 4096);
+        std::cout << "Failed to connect: " << result << " , " << errorMessage << std::endl;
     }
     assert(result == nirdma_Error_Success);
 
@@ -110,6 +117,7 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
         assert(result == nirdma_Error_Success);
     }
 
+    std::cout << "Connecting to: " << tokens[0] << ":" << tokens[1] << " For Send" << std::endl;
     nirdma_Session clientWriteSession = nirdma_InvalidSession;
     result = nirdma_CreateConnectorSession(localAddress.c_str(), 0, &clientWriteSession);
     result = nirdma_Connect(clientWriteSession, nirdma_Direction_Send, tokens[0].c_str(), std::stoi(tokens[1])+1, timeoutMs);
@@ -216,12 +224,11 @@ RdmaSidebandDataImp::RdmaSidebandDataImp(nirdma_Session connectedWriteSession, n
     _connectedWriteSession(connectedWriteSession),
     _connectedReadSession(connectedReadSession),
     _lowLatency(lowLatency),
-    _receiveSemaphore(0)
+    _receiveSemaphore(0),
+    _bufferSize(bufferSize),
+    _readBuffer(bufferSize),
+    _writeBuffer(bufferSize)
 {
-    _bufferSize = bufferSize;
-    _readBuffer.reserve(_bufferSize);
-    _writeBuffer.reserve(_bufferSize);
-
     auto result = nirdma_ConfigureExternalBuffer(_connectedWriteSession, _writeBuffer.data(), _bufferSize, MaxConcurrentTransactions);
     if (result != 0)
     {
@@ -276,7 +283,7 @@ void RdmaSidebandDataImp::QueueSidebandConnection(::SidebandStrategy strategy, b
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 RdmaSidebandData* RdmaSidebandDataImp::ClientInitFromConnection(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, bool lowLatency, int64_t bufferSize)
-{    
+{
     auto imp = new RdmaSidebandDataImp(connectedWriteSession, connectedReadSession, lowLatency, bufferSize);
     auto sidebandData = new RdmaSidebandData("TEST_RDMA", imp);
     RegisterSidebandData(sidebandData);
@@ -300,6 +307,7 @@ RdmaSidebandData* RdmaSidebandDataImp::InitFromConnection(nirdma_Session connect
     {
         if (_nextConnectLowLatency && _pendingReadSession != nirdma_InvalidSession)
         {
+            std::cout << "Setting low latency" << std::endl;
             bool usePooling = true;
             auto result = nirdma_SetProperty(_pendingReadSession, nirdma_Property_UseRxPolling, &usePooling, sizeof(bool));
             if (result != nirdma_Error_Success)
@@ -342,9 +350,9 @@ bool RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t byteCount)
 bool RdmaSidebandDataImp::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     nirdma_BufferCompletionCallbackData* bufferReadyPtr = nullptr;
+    nirdma_BufferCompletionCallbackData bufferReady;
     if (!_lowLatency)
     {
-        nirdma_BufferCompletionCallbackData bufferReady;
         bufferReady.callbackFunction = RdmaSidebandDataImp::ServerReceiveData;
         bufferReady.context1 = this;
         bufferReady.context2 = nullptr;
@@ -471,6 +479,11 @@ std::string GetRdmaAddress()
             interfaces.push_back(&addr.addressString[0]);
         }
     }
+    if (interfaces.size() == 0)
+    {
+        std::cout << "Could not find interface" << std::endl;
+        return std::string();
+    }
     assert(interfaces.size() == 1);
     return interfaces.front();    
 }
@@ -501,6 +514,10 @@ int AcceptSidebandRdmaRequests(int direction, int port)
 {
     std::string listenAddress = GetRdmaAddress();
     std::cout << "Listening for RDMA at: " << listenAddress << ":" << port << std::endl;
+    if (listenAddress.length() == 0)
+    {
+        return -1;
+    }
 
     nirdma_Session listenSession = nirdma_InvalidSession;
     auto result = nirdma_CreateListenerSession(listenAddress.c_str(), port, &listenSession);

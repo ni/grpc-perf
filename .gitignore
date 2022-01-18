@@ -24,5 +24,7 @@ perftest_server
 
 *.pb.cc
 *.pb.h
+*.so
+*.so.*
 
 __pycache__
