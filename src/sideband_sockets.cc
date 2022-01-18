@@ -155,7 +155,8 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     serv_addr.sin_port = htons(portno);
     if (connect(connectSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     { 
-        error("ERROR connecting");
+        std::cout << "ERROR connecting" << std::endl;
+        return -1;
     }
 #endif
 
