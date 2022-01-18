@@ -342,7 +342,7 @@ bool RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t byteCount)
 bool RdmaSidebandDataImp::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     nirdma_BufferCompletionCallbackData* bufferReadyPtr = nullptr;
-    if (_lowLatency)
+    if (!_lowLatency)
     {
         nirdma_BufferCompletionCallbackData bufferReady;
         bufferReady.callbackFunction = RdmaSidebandDataImp::ServerReceiveData;
