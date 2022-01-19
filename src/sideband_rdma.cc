@@ -321,6 +321,7 @@ RdmaSidebandData* RdmaSidebandDataImp::InitFromConnection(nirdma_Session connect
         auto imp = new RdmaSidebandDataImp(_pendingWriteSession, _pendingReadSession, _nextConnectLowLatency, _nextConnectBufferSize);
         auto sidebandData = new RdmaSidebandData("TEST_RDMA", imp);
         RegisterSidebandData(sidebandData);
+        _rdmaConnectQueue.notify();
         return sidebandData;        
     }
     return nullptr;
@@ -534,7 +535,6 @@ int AcceptSidebandRdmaRequests(int direction, int port)
     {
         std::cout << "Failed nirdma_CreateListenerSession: " << result << std::endl;
     }
-
     while (true)
     {
         nirdma_Session connectedSession = nirdma_InvalidSession;
@@ -547,6 +547,7 @@ int AcceptSidebandRdmaRequests(int direction, int port)
         std::cout << "RDMA Connection!" << std::endl;        
         RdmaSidebandDataImp::InitFromConnection(connectedSession, direction == nirdma_Direction_Send);
     }
+    nirdma_CloseSession(listenSession);
     return 0;
 }
 
