@@ -108,6 +108,7 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
 //---------------------------------------------------------------------
 void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, niPerfTest::SidebandStrategy strategy)
 {
+    std::cout << "Start Sideband moniker latency test, "  << numSamples << " Samples" << std::endl;
     ClientContext ctx;
     BeginMonikerSidebandStreamRequest request;
     request.set_strategy(strategy);
@@ -150,6 +151,8 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
     WriteSidebandMessage(sidebandToken, sidebandRequest);
     CloseSidebandData(sidebandToken);
     WriteLatencyData(times, "SidebandLatency.txt");
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::cout << endl;
 }
 
 //---------------------------------------------------------------------
