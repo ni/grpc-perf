@@ -396,10 +396,10 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
 int main(int argc, char **argv)
 {
     // Configure gRPC
-    //grpc_init();
-    //grpc_timer_manager_set_threading(false);
-    //::grpc_core::Executor::SetThreadingDefault(false);
-    //::grpc_core::Executor::SetThreadingAll(false);
+    grpc_init();
+    grpc_timer_manager_set_threading(false);
+    ::grpc_core::Executor::SetThreadingDefault(false);
+    ::grpc_core::Executor::SetThreadingAll(false);
 
     // Configure enviornment
 #ifndef _WIN32    
@@ -407,10 +407,11 @@ int main(int argc, char **argv)
     schedParam.sched_priority = 95;
     sched_setscheduler(0, SCHED_FIFO, &schedParam);
 
-    // cpu_set_t cpuSet;
-    // CPU_ZERO(&cpuSet);
-    // CPU_SET(4, &cpuSet);
-    // sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
+    cpu_set_t cpuSet;
+    CPU_ZERO(&cpuSet);
+    CPU_SET(4, &cpuSet);
+    //CPU_SET(10, &cpuSet);
+    sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
 #else
     DWORD dwError, dwPriClass;
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
@@ -460,5 +461,8 @@ int main(int argc, char **argv)
     //RunSidebandDataTestSuite(*client);
     PerformSidebandMonikerLatencyTest(*monikerClient, 1, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
     PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 10000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 100000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1000000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
     return 0;   
 }
