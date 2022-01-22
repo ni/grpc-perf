@@ -41,14 +41,13 @@
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-bool WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
+bool WriteToSocket(int socket, const void* buffer, int64_t numBytes)
 {
-    std::cout << "Writing To: " << socketfd << ", Start: " << *(int*)buffer << std::endl;
     auto remainingBytes = numBytes;
     const char* start = (const char*)buffer;
     while (remainingBytes > 0)
     {
-        int written = send(socketfd, start, remainingBytes, 0);
+        int written = send(socket, start, remainingBytes, 0);
         if (written < 0)
         {
             std::cout << "Error writing to buffer";
@@ -57,21 +56,22 @@ bool WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
         start += written;
         remainingBytes -= written;
     }
+    assert(remainingBytes == 0);
     return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-bool ReadFromSocket(int socket, void* buffer, int count)
+bool ReadFromSocket(int socket, void* buffer, int64_t numBytes)
 {
-    auto totalToRead = count;
+    auto remainingBytes = numBytes;
     char* start = (char*)buffer;
-    while (totalToRead > 0)
+    while (remainingBytes > 0)
     {        
         int n;
         do
         {
-            n = recv(socket, start, totalToRead, 0);
+            n = recv(socket, start, remainingBytes, 0);
         } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK));
 
         if (n < 0)
@@ -80,10 +80,9 @@ bool ReadFromSocket(int socket, void* buffer, int count)
             return false;
         }
         start += n;
-        totalToRead -= n;
+        remainingBytes -= n;
     }
-    assert(totalToRead == 0);
-    std::cout << "Read from: " << socket << ", Start: " << *(int*)buffer << std::endl;
+    assert(remainingBytes == 0);
     return true;
 }
 
@@ -283,13 +282,12 @@ int64_t SocketSidebandData::ReadLengthPrefix()
 //---------------------------------------------------------------------
 std::string GetSocketsAddress()
 {
-    return "10.0.0.53";
-    //auto rdmaAddress = GetRdmaAddress();
-    //if (rdmaAddress.length() > 0)
-    //{
-    //    return rdmaAddress;
-    //}
-    //return "localhost";
+    auto rdmaAddress = GetRdmaAddress();
+    if (rdmaAddress.length() > 0)
+    {
+        return rdmaAddress;
+    }
+    return "localhost";
 }
 
 //---------------------------------------------------------------------
