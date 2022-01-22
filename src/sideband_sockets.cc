@@ -83,7 +83,9 @@ bool ReadFromSocket(int socket, void* buffer, int count)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usageId)
-{    
+{
+    std::cout << "Connect TCP Socket" << std::endl;
+
     SOCKET connectSocket = INVALID_SOCKET;
     
 #ifdef _WIN32
@@ -115,6 +117,7 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
             std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
             return 0;
         }
+        std::cout << "Socket Created" << std::endl;
 
         // Connect to server.
         iResult = connect(connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
@@ -124,6 +127,7 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
             connectSocket = INVALID_SOCKET;
             continue;
         }
+        std::cout << "Socket connected" << std::endl;
         break;
     }
     freeaddrinfo(result);
@@ -138,12 +142,15 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     struct hostent *server;
     portno = atoi(port.c_str());
     connectSocket = socket(AF_INET, SOCK_STREAM, 0);
+    std::cout << "Socket created" << std::endl;
     if (connectSocket < 0) 
     {
         std::cout << "ERROR opening socket" << std::endl;
         return 0;
     }
+    std::cout << "address: " << address << std::endl;
     server = gethostbyname(address.c_str());
+    std::cout << "called get host by name" << std::endl;
     if (server == NULL)
     {
         std::cout << "ERROR, no such host" << std::endl;
@@ -158,6 +165,7 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
         std::cout << "ERROR connecting" << std::endl;
         return -1;
     }
+    std::cout << "Socket connected" << std::endl;
 #endif
 
     // Tell the server what shared memory location we are for
@@ -167,7 +175,8 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-SocketSidebandData::SocketSidebandData(uint64_t socket, const std::string& id) :
+SocketSidebandData::SocketSidebandData(uint64_t socket, const std::string& id, int64_t bufferSize) :
+    SidebandData(bufferSize),
     _socket(socket),
     _id(id)
 {
@@ -212,7 +221,7 @@ SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandSe
 {    
     auto tokens = SplitUrlString(sidebandServiceUrl);
     auto socket = ConnectTCPSocket(tokens[0], tokens[1], usageId);
-    auto sidebandData = new SocketSidebandData(socket, usageId);
+    auto sidebandData = new SocketSidebandData(socket, usageId, 1024 * 1024);
     return sidebandData;
 }
 

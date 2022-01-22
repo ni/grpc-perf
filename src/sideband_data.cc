@@ -14,9 +14,28 @@ std::map<std::string, SidebandData*> _buffers;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+SidebandData::SidebandData(int64_t bufferSize) :
+    _bufferSize(bufferSize)
+{        
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 SidebandData::~SidebandData()
 {
 }
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+uint8_t* SidebandData::SerializeBuffer()
+{
+    if (_serializeBuffer.size() == 0)
+    {
+        _serializeBuffer = std::vector<uint8_t>(_bufferSize);
+    }
+    return _serializeBuffer.data();
+}
+
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -108,7 +127,7 @@ void AddServerSidebandSocket(int socket, const std::string& usageId)
 {    
     std::unique_lock<std::mutex> lock(_bufferLockMutex);
 
-    auto sidebandData = new SocketSidebandData(socket, usageId);
+    auto sidebandData = new SocketSidebandData(socket, usageId, 1024 * 1024);
     assert(_buffers.find(sidebandData->UsageId()) == _buffers.end());
     _buffers.emplace(usageId, sidebandData);
 
@@ -189,13 +208,10 @@ bool ReadSidebandMessage(int64_t dataToken, google::protobuf::MessageLite* messa
     else
     {
         auto bufferSize = sidebandData->ReadLengthPrefix();
-        if (bufferSize > sidebandData->_serializeBuffer.size())
-        {
-            sidebandData->_serializeBuffer.reserve(bufferSize);
-        }
         int64_t bytesRead = 0;
-        sidebandData->ReadFromLengthPrefixed(sidebandData->_serializeBuffer.data(), bufferSize, &bytesRead);
-        success = message->ParseFromArray(sidebandData->_serializeBuffer.data(), bytesRead);
+        sidebandData->ReadFromLengthPrefixed(sidebandData->SerializeBuffer(), bufferSize, &bytesRead);
+        success = message->ParseFromArray(sidebandData->SerializeBuffer(), bytesRead);
+        assert(success);
     }
     return success;
 }
@@ -235,8 +251,8 @@ int64_t WriteSidebandMessage(int64_t dataToken, const google::protobuf::MessageL
     }
     else
     {
-        message.SerializeToArray(sidebandData->_serializeBuffer.data(), byteSize);
-        sidebandData->WriteLengthPrefixed(sidebandData->_serializeBuffer.data(), byteSize);
+        message.SerializeToArray(sidebandData->SerializeBuffer(), byteSize);
+        sidebandData->WriteLengthPrefixed(sidebandData->SerializeBuffer(), byteSize);
     }
     return byteSize;
 }

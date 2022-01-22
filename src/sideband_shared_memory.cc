@@ -24,6 +24,7 @@ void SetFastMemcpy(bool fastMemcpy)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 SharedMemorySidebandData::SharedMemorySidebandData(const std::string& id, int64_t bufferSize) :
+    SidebandData(bufferSize),
 #ifdef _WIN32
     _mapFile(INVALID_HANDLE_VALUE),
 #endif
@@ -248,6 +249,7 @@ bool SharedMemorySidebandData::FinishDirectWrite(int64_t byteCount)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 DoubleBufferedSharedMemorySidebandData::DoubleBufferedSharedMemorySidebandData(const std::string& id, int64_t bufferSize) :
+    SidebandData(bufferSize),
     _bufferA(id + "_A", bufferSize),
     _bufferB(id + "_B", bufferSize),
     _id(id)

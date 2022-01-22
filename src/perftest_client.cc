@@ -459,6 +459,9 @@ int main(int argc, char **argv)
     //RunSteamingTestSuite(*client);
     //RunLatencyStreamTestSuite(*client);
     //RunSidebandDataTestSuite(*client);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1, niPerfTest::SidebandStrategy::SOCKETS);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
+
     PerformSidebandMonikerLatencyTest(*monikerClient, 1, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
     PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
     PerformSidebandMonikerLatencyTest(*monikerClient, 10000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);

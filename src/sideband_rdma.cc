@@ -37,6 +37,8 @@ public:
     uint8_t* BeginDirectWrite();
     bool FinishDirectWrite(int64_t byteCount);
 
+    int64_t BufferSize();    
+
     static void QueueSidebandConnection(::SidebandStrategy strategy, bool waitForReader, bool waitForWriter, int64_t bufferSize);
     static RdmaSidebandData* InitFromConnection(nirdma_Session connectedSession, bool isWriteSession);
     static RdmaSidebandData* ClientInitFromConnection(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, bool lowLatency, int64_t bufferSize);
@@ -62,6 +64,7 @@ private:
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 RdmaSidebandData::RdmaSidebandData(const std::string& id, RdmaSidebandDataImp* implementation) :
+    SidebandData(implementation->BufferSize()),
     _id(id),
     _imp(implementation)
 {    
@@ -344,8 +347,11 @@ bool RdmaSidebandDataImp::Write(const uint8_t* bytes, int64_t byteCount)
 bool RdmaSidebandDataImp::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
     _readBuffer = {};
-    auto result = nirdma_AcquireReceivedRegion(_connectedReadSession, timeoutMs, &_readBuffer);
-    if (result != 0)
+    int32_t result = nirdma_Error_Success;
+    do {    
+        result = nirdma_AcquireReceivedRegion(_connectedReadSession, timeoutMs, &_readBuffer);
+    } while (result == nirdma_Error_Timeout);
+    if (result != nirdma_Error_Success)
     {
         std::cout << "Failed nirdma_QueueExternalBufferRegion: " << result << std::endl;
         return false;
@@ -451,6 +457,13 @@ bool RdmaSidebandDataImp::FinishDirectWrite(int64_t byteCount)
         return false;
     }
     return true;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+int64_t RdmaSidebandDataImp::BufferSize()
+{
+    return _bufferSize;
 }
 
 //---------------------------------------------------------------------
