@@ -183,7 +183,6 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
 void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, niPerfTest::SidebandStrategy strategy)
 {
     auto thread = new std::thread(ThreadPerformSidebandMonikerLatencyTest, &client, numSamples, strategy);
-    std::this_thread::sleep_for(std::chrono::milliseconds(60000));
     thread->join();
 }
 
