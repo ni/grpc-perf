@@ -90,53 +90,40 @@ bool ReadFromSocket(int socket, void* buffer, int64_t numBytes)
 //---------------------------------------------------------------------
 SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usageId)
 {
-    std::cout << "Connect TCP Socket" << std::endl;
-
     SOCKET connectSocket = INVALID_SOCKET;
     
 #ifdef _WIN32
-    struct addrinfo *result = NULL;
-    struct addrinfo *ptr = NULL;
     struct addrinfo hints;
-    int iResult;
-    
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    // Resolve the server address and port
-    iResult = getaddrinfo(address.c_str(), port.c_str(), &hints, &result);
-    if ( iResult != 0 )
+    struct addrinfo* resultAddress = nullptr;
+    auto result = getaddrinfo(address.c_str(), port.c_str(), &hints, &resultAddress);
+    if (result != 0)
     {
-        std::cout << "getaddrinfo failed with error: " << iResult << std::endl;
+        std::cout << "getaddrinfo failed with error: " << result << std::endl;
         return 0;
     }
-
-    // Attempt to connect to an address until one succeeds
-    for(ptr=result; ptr != NULL; ptr=ptr->ai_next)
+    for (addrinfo* current = resultAddress; current != nullptr; current = current->ai_next)
     {
-        // Create a SOCKET for connecting to server
-        connectSocket = socket(ptr->ai_family, SOCK_STREAM, IPPROTO_TCP);
+        connectSocket = socket(current->ai_family, SOCK_STREAM, IPPROTO_TCP);
         if (connectSocket == INVALID_SOCKET)
         {
             std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
             return 0;
         }
-        std::cout << "Socket Created" << std::endl;
-
-        // Connect to server.
-        iResult = connect(connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-        if (iResult == SOCKET_ERROR)
+        result = connect(connectSocket, current->ai_addr, (int)current->ai_addrlen);
+        if (result == SOCKET_ERROR)
         {
             closesocket(connectSocket);
             connectSocket = INVALID_SOCKET;
             continue;
         }
-        std::cout << "Socket connected" << std::endl;
         break;
     }
-    freeaddrinfo(result);
+    freeaddrinfo(resultAddress);
     if (connectSocket == INVALID_SOCKET)
     {
         std::cout << "Unable to connect to server!" << std::endl;
@@ -148,15 +135,12 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     struct hostent *server;
     portno = atoi(port.c_str());
     connectSocket = socket(AF_INET, SOCK_STREAM, 0);
-    std::cout << "Socket created" << std::endl;
     if (connectSocket < 0) 
     {
         std::cout << "ERROR opening socket" << std::endl;
         return 0;
     }
-    std::cout << "address: " << address << std::endl;
     server = gethostbyname(address.c_str());
-    std::cout << "called get host by name" << std::endl;
     if (server == NULL)
     {
         std::cout << "ERROR, no such host" << std::endl;
@@ -171,9 +155,7 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
         std::cout << "ERROR connecting" << std::endl;
         return -1;
     }
-    std::cout << "Socket connected" << std::endl;
 #endif
-
     // Tell the server what shared memory location we are for
     WriteToSocket(connectSocket, const_cast<char*>(usageId.c_str()), usageId.length());
     return connectSocket;
