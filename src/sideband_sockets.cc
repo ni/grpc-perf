@@ -43,6 +43,7 @@
 //---------------------------------------------------------------------
 bool WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
 {
+    std::cout << "Writing To: " << socketfd << ", Start: " << *(int*)buffer << std::endl;
     auto remainingBytes = numBytes;
     while (remainingBytes > 0)
     {
@@ -77,6 +78,8 @@ bool ReadFromSocket(int socket, void* buffer, int count)
         }
         totalToRead -= n;
     }
+    assert(totalToRead == 0);
+    std::cout << "Read from: " << socket << ", Start: " << *(int*)buffer << std::endl;
     return true;
 }
 
@@ -111,7 +114,7 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     for(ptr=result; ptr != NULL; ptr=ptr->ai_next)
     {
         // Create a SOCKET for connecting to server
-        connectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        connectSocket = socket(ptr->ai_family, SOCK_STREAM, IPPROTO_TCP);
         if (connectSocket == INVALID_SOCKET)
         {
             std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
@@ -276,12 +279,13 @@ int64_t SocketSidebandData::ReadLengthPrefix()
 //---------------------------------------------------------------------
 std::string GetSocketsAddress()
 {
-    auto rdmaAddress = GetRdmaAddress();
-    if (rdmaAddress.length() > 0)
-    {
-        return rdmaAddress;
-    }
-    return "localhost";
+    return "10.0.0.53";
+    //auto rdmaAddress = GetRdmaAddress();
+    //if (rdmaAddress.length() > 0)
+    //{
+    //    return rdmaAddress;
+    //}
+    //return "localhost";
 }
 
 //---------------------------------------------------------------------
@@ -337,10 +341,8 @@ int RunSidebandSocketsAccept()
         AddServerSidebandSocket(newsockfd, std::string(buffer, 4));
     }
 #ifdef _WIN32
-    closesocket(newsockfd);
     closesocket(sockfd);
 #else
-    close(newsockfd);
     close(sockfd);
 #endif
     return 0; 

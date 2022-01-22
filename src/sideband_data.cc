@@ -208,11 +208,15 @@ bool ReadSidebandMessage(int64_t dataToken, google::protobuf::MessageLite* messa
     }
     else
     {
+        auto b = new uint8_t[10000];
+
         auto bufferSize = sidebandData->ReadLengthPrefix();
         int64_t bytesRead = 0;
-        sidebandData->ReadFromLengthPrefixed(sidebandData->SerializeBuffer(), bufferSize, &bytesRead);
-        success = message->ParseFromArray(sidebandData->SerializeBuffer(), bytesRead);
+        sidebandData->ReadFromLengthPrefixed(b, bufferSize, &bytesRead);
+        success = message->ParseFromArray(b, bufferSize);
         assert(success);
+
+        delete[] b;
     }
     return success;
 }
