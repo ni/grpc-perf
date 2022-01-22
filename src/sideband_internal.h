@@ -10,7 +10,8 @@
 //---------------------------------------------------------------------
 class SidebandData
 {
-public:    
+public:
+    SidebandData(int64_t bufferSize);
     virtual ~SidebandData();
     virtual const std::string& UsageId() = 0;
     virtual bool Write(const uint8_t* bytes, int64_t byteCount) = 0;
@@ -26,7 +27,10 @@ public:
     virtual uint8_t* BeginDirectWrite() { return nullptr; }
     virtual bool FinishDirectWrite(int64_t byteCount) { return false; }
 
-public:
+    uint8_t* SerializeBuffer();
+
+private:
+    int64_t _bufferSize;
     std::vector<uint8_t> _serializeBuffer;
 };
 
@@ -106,7 +110,7 @@ private:
 class SocketSidebandData : public SidebandData
 {
 public:
-    SocketSidebandData(uint64_t socket, const std::string& id);
+    SocketSidebandData(uint64_t socket, const std::string& id, int64_t bufferSize);
     virtual ~SocketSidebandData();
 
     bool Write(const uint8_t* bytes, int64_t byteCount) override;

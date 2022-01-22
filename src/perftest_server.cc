@@ -15,6 +15,9 @@
 #include <thread>
 
 #ifndef _WIN32
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include <sched.h>
 #endif
 
@@ -253,8 +256,9 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
     {
         cpu_set_t cpuSet;
         CPU_ZERO(&cpuSet);
-        CPU_SET(4, &cpuSet);
-        sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
+        CPU_SET(10, &cpuSet);
+        pid_t threadId = syscall(SYS_gettid);
+        sched_setaffinity(threadId, sizeof(cpu_set_t), &cpuSet);
     }
 #endif
 
@@ -262,6 +266,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
     auto sidebandToken = GetOwnerSidebandDataToken(sidebandIdentifier);
     assert(sidebandToken != 0);
 
+    std::cout << "Starting sideband loop" << std::endl;
     while (true)
     {
         MonikerWriteRequest request;
@@ -280,6 +285,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
         {
             break;
         }
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     CloseSidebandData(sidebandToken);
 }
@@ -481,20 +487,21 @@ void InitDetours();
 int main(int argc, char **argv)
 {
     //InitDetours();
-    //grpc_init();
-    //grpc_timer_manager_set_threading(false);
-    //grpc_core::Executor::SetThreadingDefault(false);
-    //grpc_core::Executor::SetThreadingAll(false);
+    grpc_init();
+    grpc_timer_manager_set_threading(false);
+    grpc_core::Executor::SetThreadingDefault(false);
+    grpc_core::Executor::SetThreadingAll(false);
 
 #ifndef _WIN32    
     sched_param schedParam;
     schedParam.sched_priority = 95;
     sched_setscheduler(0, SCHED_FIFO, &schedParam);
 
-    // cpu_set_t cpuSet;
-    // CPU_ZERO(&cpuSet);
-    // CPU_SET(2, &cpuSet);
-    // sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
+    cpu_set_t cpuSet;
+    CPU_ZERO(&cpuSet);
+    CPU_SET(9, &cpuSet);
+    //CPU_SET(11, &cpuSet);
+    sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
 #else
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
     {
