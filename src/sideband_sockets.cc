@@ -45,14 +45,16 @@ bool WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
 {
     std::cout << "Writing To: " << socketfd << ", Start: " << *(int*)buffer << std::endl;
     auto remainingBytes = numBytes;
+    const char* start = (const char*)buffer;
     while (remainingBytes > 0)
     {
-        int written = send(socketfd, (const char*)buffer, remainingBytes, 0);
+        int written = send(socketfd, start, remainingBytes, 0);
         if (written < 0)
         {
             std::cout << "Error writing to buffer";
             return false;
         }
+        start += written;
         remainingBytes -= written;
     }
     return true;
@@ -63,12 +65,13 @@ bool WriteToSocket(int socketfd, const void* buffer, int64_t numBytes)
 bool ReadFromSocket(int socket, void* buffer, int count)
 {
     auto totalToRead = count;
+    char* start = (char*)buffer;
     while (totalToRead > 0)
     {        
         int n;
         do
         {
-            n = recv(socket, (char*)buffer, totalToRead, 0);
+            n = recv(socket, start, totalToRead, 0);
         } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK));
 
         if (n < 0)
@@ -76,6 +79,7 @@ bool ReadFromSocket(int socket, void* buffer, int count)
             std::cout << "Failed To read." << std::endl;
             return false;
         }
+        start += n;
         totalToRead -= n;
     }
     assert(totalToRead == 0);
@@ -295,10 +299,10 @@ int RunSidebandSocketsAccept()
 
     int sockfd, newsockfd;
     socklen_t clilen;
-    struct sockaddr_in serv_addr, cli_addr;
+    struct sockaddr_in serv_addr;
 
 #ifdef _WIN32
-    WSADATA wsaData;
+    WSADATA wsaData {};
     WSAStartup(MAKEWORD(2,2), &wsaData);
 #endif
 
@@ -327,6 +331,7 @@ int RunSidebandSocketsAccept()
 
     while (true)
     {
+        sockaddr_in cli_addr {};
         clilen = sizeof(cli_addr);
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0)
