@@ -119,7 +119,8 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
     client->m_Stub->BeginMonikerSidebandStream(&ctx, request, &response);
 
 #ifndef _WIN32
-    if (strategy == ::niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY)
+    if (strategy == ::niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY ||
+        strategy == ::niPerfTest::SidebandStrategy::SOCKETS_LOW_LATENCY)
     {
         cpu_set_t cpuSet;
         CPU_ZERO(&cpuSet);

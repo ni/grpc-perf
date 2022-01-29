@@ -59,6 +59,7 @@ std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSiz
             }
             break;
         case ::SidebandStrategy::SOCKETS:
+        case ::SidebandStrategy::SOCKETS_LOW_LATENCY:
             return "4444";
         case ::SidebandStrategy::RDMA:
         case ::SidebandStrategy::RDMA_LOW_LATENCY:
@@ -93,6 +94,7 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
             sidebandData = new DoubleBufferedSharedMemorySidebandData(usageId, bufferSize);
             break;
         case ::SidebandStrategy::SOCKETS:
+        case ::SidebandStrategy::SOCKETS_LOW_LATENCY:
             sidebandData = SocketSidebandData::ClientInit(sidebandServiceUrl, usageId);
             insert = false;
             break;
@@ -180,7 +182,8 @@ void CloseSidebandData(int64_t dataToken)
 std::string GetConnectionAddress(::SidebandStrategy strategy)
 {
     std::string address;
-    if (strategy == ::SidebandStrategy::RDMA || strategy == ::SidebandStrategy::RDMA_LOW_LATENCY)
+    if (strategy == ::SidebandStrategy::RDMA || 
+        strategy == ::SidebandStrategy::RDMA_LOW_LATENCY)
     {
         address = GetRdmaAddress() + ":50060";
     }
@@ -219,20 +222,6 @@ bool ReadSidebandMessage(int64_t dataToken, google::protobuf::MessageLite* messa
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-bool ReadSidebandMonikerRequest(int64_t dataToken, MonikerWriteRequest* writeRequest)
-{
-    return ReadSidebandMessage(dataToken, writeRequest);
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-bool ReadSidebandMonikerResponse(int64_t dataToken, MonikerReadResponse* response)
-{    
-    return ReadSidebandMessage(dataToken, response);
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 int64_t InitMonikerSidebandData(const BeginMonikerSidebandStreamResponse& initResponse)
 {
     return InitClientSidebandData(initResponse.connection_url(), (::SidebandStrategy)initResponse.strategy(), initResponse.sideband_identifier(), initResponse.buffer_size());
@@ -256,18 +245,4 @@ int64_t WriteSidebandMessage(int64_t dataToken, const google::protobuf::MessageL
         sidebandData->WriteLengthPrefixed(sidebandData->SerializeBuffer(), byteSize);
     }
     return byteSize;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-int64_t WriteSidebandMonikers(int64_t dataToken, const MonikerWriteRequest& writeRequest)
-{
-    return WriteSidebandMessage(dataToken, writeRequest);
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-int64_t WriteSidebandMonikers(int64_t dataToken, const MonikerReadResponse& response)
-{
-    return WriteSidebandMessage(dataToken, response);
 }

@@ -225,6 +225,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
             case niPerfTest::SidebandStrategy::RDMA:
             case niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY:
             case niPerfTest::SidebandStrategy::SOCKETS:
+            case niPerfTest::SidebandStrategy::SOCKETS_LOW_LATENCY:
                 stream->Write(response);
                 WriteSidebandData(sidebandToken, buffer, request.num_samples());
                 break;
@@ -252,7 +253,8 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
 void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandStrategy strategy)
 {
 #ifndef _WIN32
-    if (strategy == ::SidebandStrategy::RDMA_LOW_LATENCY)
+    if (strategy == ::SidebandStrategy::RDMA_LOW_LATENCY ||
+        strategy == ::SidebandStrategy::SOCKETS_LOW_LATENCY)
     {
         cpu_set_t cpuSet;
         CPU_ZERO(&cpuSet);

@@ -15,9 +15,10 @@ enum class SidebandStrategy
   SHARED_MEMORY = 2,
   DOUBLE_BUFFERED_SHARED_MEMORY = 3,
   SOCKETS = 4,
-  HYPERVISOR_SOCKETS = 5,
-  RDMA = 6,
-  RDMA_LOW_LATENCY = 7
+  SOCKETS_LOW_LATENCY = 5,
+  HYPERVISOR_SOCKETS = 6,
+  RDMA = 7,
+  RDMA_LOW_LATENCY = 8
 };
 
 //---------------------------------------------------------------------
@@ -50,14 +51,7 @@ int64_t WriteSidebandMessage(int64_t dataToken, const google::protobuf::MessageL
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-bool ReadSidebandMonikerRequest(int64_t dataToken, MonikerWriteRequest* writeRequest);
-int64_t WriteSidebandMonikers(int64_t dataToken, const MonikerReadResponse& response);
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 int64_t InitMonikerSidebandData(const BeginMonikerSidebandStreamResponse& initResponse);
-int64_t WriteSidebandMonikers(int64_t dataToken, const MonikerWriteRequest& writeRequest);
-bool ReadSidebandMonikerResponse(int64_t dataToken, MonikerReadResponse* response);
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

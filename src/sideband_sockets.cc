@@ -69,10 +69,12 @@ bool ReadFromSocket(int socket, void* buffer, int64_t numBytes)
     while (remainingBytes > 0)
     {        
         int n;
+        int wsaError;
         do
         {
             n = recv(socket, start, remainingBytes, 0);
-        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK));
+            wsaError = WSAGetLastError();
+        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || wsaError == WSAEWOULDBLOCK));
 
         if (n < 0)
         {
@@ -320,6 +322,16 @@ int RunSidebandSocketsAccept()
             return -1;
         }
         std::cout << "Connection!" << std::endl;
+
+        u_long iMode = 1;
+        ioctlsocket(newsockfd, FIONBIO, &iMode);
+
+        int yes = 1;
+        int result = setsockopt(newsockfd,
+            IPPROTO_TCP,
+            TCP_NODELAY,
+            (char*)&yes,
+            sizeof(int));
 
         char buffer[32];
         ReadFromSocket(newsockfd, buffer, 4);
