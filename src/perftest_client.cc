@@ -460,6 +460,7 @@ int main(int argc, char **argv)
     //RunLatencyStreamTestSuite(*client);
     //RunSidebandDataTestSuite(*client);
     PerformSidebandMonikerLatencyTest(*monikerClient, 1, niPerfTest::SidebandStrategy::SOCKETS);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1, niPerfTest::SidebandStrategy::SOCKETS);
     PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
 
     PerformSidebandMonikerLatencyTest(*monikerClient, 1, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);

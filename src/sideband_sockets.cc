@@ -18,6 +18,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
 #endif
 
 #include <sideband_data.h>
@@ -71,7 +72,7 @@ bool ReadFromSocket(int socket, void* buffer, int64_t numBytes)
         int n;
         do
         {
-            n = recv(socket, start, remainingBytes, 0);
+            n = recv(socket, start, remainingBytes, 0); //MSG_DONTWAIT);
         } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK));
 
         if (n < 0)
@@ -156,6 +157,13 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
         return -1;
     }
 #endif
+    int yes = 1;
+    int result = setsockopt(connectSocket,
+        IPPROTO_TCP,
+        TCP_NODELAY,
+        (char*)&yes,
+        sizeof(int));
+
     // Tell the server what shared memory location we are for
     WriteToSocket(connectSocket, const_cast<char*>(usageId.c_str()), usageId.length());
     return connectSocket;
@@ -320,6 +328,9 @@ int RunSidebandSocketsAccept()
             return -1;
         }
         std::cout << "Connection!" << std::endl;
+
+        int yes = 1;
+        int result = setsockopt(newsockfd, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(int));
 
         char buffer[32];
         ReadFromSocket(newsockfd, buffer, 4);
