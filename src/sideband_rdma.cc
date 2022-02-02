@@ -39,9 +39,9 @@ public:
 
     int64_t BufferSize();    
 
-    static void QueueSidebandConnection(::SidebandStrategy strategy, bool waitForReader, bool waitForWriter, int64_t bufferSize);
+    static void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize);
     static RdmaSidebandData* InitFromConnection(nirdma_Session connectedSession, bool isWriteSession);
-    static RdmaSidebandData* ClientInitFromConnection(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, bool lowLatency, int64_t bufferSize);
+    static RdmaSidebandData* ClientInitFromConnection(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, const std::string& id, bool lowLatency, int64_t bufferSize);
 
 private:
     bool _lowLatency;
@@ -59,6 +59,7 @@ private:
     static bool _waitForReaderConnection;
     static bool _waitForWriteConnection;
     static int64_t _nextConnectBufferSize;
+    static std::string _nextConnectionId;
 };
 
 //---------------------------------------------------------------------
@@ -126,7 +127,7 @@ RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServic
     }
     assert(result == nirdma_Error_Success);
 
-    auto sidebandData = RdmaSidebandDataImp::ClientInitFromConnection(clientWriteSession, clientReadSession, lowLatency, bufferSize);
+    auto sidebandData = RdmaSidebandDataImp::ClientInitFromConnection(clientWriteSession, clientReadSession, usageId, lowLatency, bufferSize);
     return sidebandData;
 }
 
@@ -216,6 +217,7 @@ bool RdmaSidebandDataImp::_nextConnectLowLatency;
 bool RdmaSidebandDataImp::_waitForReaderConnection;
 bool RdmaSidebandDataImp::_waitForWriteConnection;
 int64_t RdmaSidebandDataImp::_nextConnectBufferSize;
+std::string RdmaSidebandDataImp::_nextConnectionId;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -261,7 +263,7 @@ RdmaSidebandDataImp::~RdmaSidebandDataImp()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RdmaSidebandDataImp::QueueSidebandConnection(::SidebandStrategy strategy, bool waitForReader, bool waitForWriter, int64_t bufferSize)
+void RdmaSidebandDataImp::QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize)
 {
     _rdmaConnectQueue.wait();
     _pendingWriteSession = nirdma_InvalidSession;
@@ -274,14 +276,15 @@ void RdmaSidebandDataImp::QueueSidebandConnection(::SidebandStrategy strategy, b
     _nextConnectBufferSize = bufferSize;
     _waitForReaderConnection = waitForReader;
     _waitForWriteConnection = waitForWriter;
+    _nextConnectionId = id;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-RdmaSidebandData* RdmaSidebandDataImp::ClientInitFromConnection(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, bool lowLatency, int64_t bufferSize)
+RdmaSidebandData* RdmaSidebandDataImp::ClientInitFromConnection(nirdma_Session connectedWriteSession, nirdma_Session connectedReadSession, const std::string& id, bool lowLatency, int64_t bufferSize)
 {
     auto imp = new RdmaSidebandDataImp(connectedWriteSession, connectedReadSession, lowLatency, bufferSize);
-    auto sidebandData = new RdmaSidebandData("TEST_RDMA", imp);
+    auto sidebandData = new RdmaSidebandData(id, imp);
     RegisterSidebandData(sidebandData);
     return sidebandData;        
 }
@@ -313,7 +316,7 @@ RdmaSidebandData* RdmaSidebandDataImp::InitFromConnection(nirdma_Session connect
             assert(result == nirdma_Error_Success);
         }
         auto imp = new RdmaSidebandDataImp(_pendingWriteSession, _pendingReadSession, _nextConnectLowLatency, _nextConnectBufferSize);
-        auto sidebandData = new RdmaSidebandData("TEST_RDMA", imp);
+        auto sidebandData = new RdmaSidebandData(_nextConnectionId, imp);
         RegisterSidebandData(sidebandData);
         _rdmaConnectQueue.notify();
         return sidebandData;        
@@ -495,7 +498,7 @@ std::string GetRdmaAddress()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void QueueSidebandConnection(::SidebandStrategy strategy, bool waitForReader, bool waitForWriter, int64_t bufferSize)
+void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize)
 {
     bool lowLatency = false;
     switch (strategy)
@@ -509,7 +512,7 @@ void QueueSidebandConnection(::SidebandStrategy strategy, bool waitForReader, bo
             // don't need to queue for non RDMA strategies
             return;
     }
-    RdmaSidebandDataImp::QueueSidebandConnection(strategy, waitForReader, waitForWriter, bufferSize);
+    RdmaSidebandDataImp::QueueSidebandConnection(strategy, id, waitForReader, waitForWriter, bufferSize);
 }
 
 //---------------------------------------------------------------------

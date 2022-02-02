@@ -31,10 +31,6 @@
 #pragma comment(lib, "Ws2_32.lib")
 #endif
 
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-#define TEST_TCP_PORT 50055
-
 #ifndef _WIN32
 #define SOCKET int
 #define INVALID_SOCKET 0
@@ -42,59 +38,43 @@
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-bool WriteToSocket(int socket, const void* buffer, int64_t numBytes)
+bool SocketSidebandData::_nextConnectLowLatency;
+int64_t SocketSidebandData::_nextConnectBufferSize;
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SocketSidebandData::SocketSidebandData(const std::string& id, int64_t bufferSize, bool lowLatency) :
+    SidebandData(bufferSize),
+    _socket(INVALID_SOCKET),
+    _id(id),
+    _lowLatency(lowLatency)
 {
-    auto remainingBytes = numBytes;
-    const char* start = (const char*)buffer;
-    while (remainingBytes > 0)
-    {
-        int written = send(socket, start, remainingBytes, 0);
-        if (written < 0)
-        {
-            std::cout << "Error writing to buffer";
-            return false;
-        }
-        start += written;
-        remainingBytes -= written;
-    }
-    assert(remainingBytes == 0);
-    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-bool ReadFromSocket(int socket, void* buffer, int64_t numBytes)
+SocketSidebandData::SocketSidebandData(uint64_t socket, int64_t bufferSize, bool lowLatency) :
+    SidebandData(bufferSize),
+    _socket(socket),
+    _lowLatency(lowLatency)
 {
-    auto remainingBytes = numBytes;
-    char* start = (char*)buffer;
-    while (remainingBytes > 0)
-    {        
-        int n;
-        int wsaError;
-        do
-        {
-            n = recv(socket, start, remainingBytes, 0); // MSG_NOWAIT
-            wsaError = WSAGetLastError();
-        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || wsaError == WSAEWOULDBLOCK));
-
-        if (n < 0)
-        {
-            std::cout << "Failed To read." << std::endl;
-            return false;
-        }
-        start += n;
-        remainingBytes -= n;
-    }
-    assert(remainingBytes == 0);
-    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usageId)
+SocketSidebandData::~SocketSidebandData()
+{    
+#ifdef _WIN32
+    closesocket(_socket);
+#else
+    close(_socket);
+#endif
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void SocketSidebandData::ConnectToSocket(std::string address, std::string port, std::string usageId, bool lowLatency)
 {
-    SOCKET connectSocket = INVALID_SOCKET;
-    
 #ifdef _WIN32
     struct addrinfo hints;
     ZeroMemory(&hints, sizeof(hints));
@@ -107,38 +87,38 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     if (result != 0)
     {
         std::cout << "getaddrinfo failed with error: " << result << std::endl;
-        return 0;
+        return;
     }
     for (addrinfo* current = resultAddress; current != nullptr; current = current->ai_next)
     {
-        connectSocket = socket(current->ai_family, SOCK_STREAM, IPPROTO_TCP);
-        if (connectSocket == INVALID_SOCKET)
+        _socket = socket(current->ai_family, SOCK_STREAM, IPPROTO_TCP);
+        if (_socket == INVALID_SOCKET)
         {
             std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
-            return 0;
+            return;
         }
-        result = connect(connectSocket, current->ai_addr, (int)current->ai_addrlen);
+        result = connect(_socket, current->ai_addr, (int)current->ai_addrlen);
         if (result == SOCKET_ERROR)
         {
-            closesocket(connectSocket);
-            connectSocket = INVALID_SOCKET;
+            closesocket(_socket);
+            _socket = INVALID_SOCKET;
             continue;
         }
         break;
     }
     freeaddrinfo(resultAddress);
-    if (connectSocket == INVALID_SOCKET)
+    if (_socket == INVALID_SOCKET)
     {
         std::cout << "Unable to connect to server!" << std::endl;
-        return 0;
+        return;
     }
 #else
     int portno;
     struct sockaddr_in serv_addr;
     struct hostent *server;
     portno = atoi(port.c_str());
-    connectSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (connectSocket < 0) 
+    _socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (_socket < 0) 
     {
         std::cout << "ERROR opening socket" << std::endl;
         return 0;
@@ -153,42 +133,72 @@ SOCKET ConnectTCPSocket(std::string address, std::string port, std::string usage
     serv_addr.sin_family = AF_INET;
     bcopy((char*)server->h_addr, (char*)&serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(portno);
-    if (connect(connectSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    if (connect(_socket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     { 
         std::cout << "ERROR connecting" << std::endl;
         return -1;
     }
 #endif
-    int yes = 1;
-    int result = setsockopt(connectSocket,
-        IPPROTO_TCP,
-        TCP_NODELAY,
-        (char*)&yes,
-        sizeof(int));
+
+    if (lowLatency)
+    {
+        u_long iMode = 1;
+        ioctlsocket(_socket, FIONBIO, &iMode);
+        int yes = 1;
+        int result = setsockopt(_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(int));
+    }
 
     // Tell the server what shared memory location we are for
-    WriteToSocket(connectSocket, const_cast<char*>(usageId.c_str()), usageId.length());
-    return connectSocket;
+    WriteToSocket(const_cast<char*>(usageId.c_str()), usageId.length());
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-SocketSidebandData::SocketSidebandData(uint64_t socket, const std::string& id, int64_t bufferSize) :
-    SidebandData(bufferSize),
-    _socket(socket),
-    _id(id)
+bool SocketSidebandData::WriteToSocket(const void* buffer, int64_t numBytes)
 {
+    auto remainingBytes = numBytes;
+    const char* start = (const char*)buffer;
+    while (remainingBytes > 0)
+    {
+        int written = send(_socket, start, remainingBytes, 0);
+        if (written < 0)
+        {
+            std::cout << "Error writing to buffer";
+            return false;
+        }
+        start += written;
+        remainingBytes -= written;
+    }
+    assert(remainingBytes == 0);
+    return true;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-SocketSidebandData::~SocketSidebandData()
-{    
-#ifdef _WIN32
-    closesocket(_socket);
-#else
-    close(_socket);
-#endif
+bool SocketSidebandData::ReadFromSocket(void* buffer, int64_t numBytes)
+{
+    auto remainingBytes = numBytes;
+    char* start = (char*)buffer;
+    while (remainingBytes > 0)
+    {        
+        int n;
+        int wsaError;
+        do
+        {
+            n = recv(_socket, start, remainingBytes, 0); // MSG_NOWAIT
+            wsaError = WSAGetLastError();
+        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || wsaError == WSAEWOULDBLOCK));
+
+        if (n < 0)
+        {
+            std::cout << "Failed To read." << std::endl;
+            return false;
+        }
+        start += n;
+        remainingBytes -= n;
+    }
+    assert(remainingBytes == 0);
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -215,11 +225,37 @@ std::vector<std::string> SplitUrlString(const std::string& s)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandServiceUrl, const std::string& usageId)
+void SocketSidebandData::ReadConnectionId()
+{    
+    std::vector<char> buffer(ConnectIdLength());
+    ReadFromSocket(buffer.data(), ConnectIdLength());
+    _id = std::string(buffer.data(), ConnectIdLength());
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SocketSidebandData* SocketSidebandData::InitFromConnection(int socket)
+{
+    if (_nextConnectLowLatency)
+    {
+        u_long iMode = 1;
+        ioctlsocket(socket, FIONBIO, &iMode);
+        int yes = 1;
+        int result = setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(int));
+    }
+    auto sidebandData = new SocketSidebandData(socket, _nextConnectBufferSize, _nextConnectLowLatency);
+    sidebandData->ReadConnectionId();
+    RegisterSidebandData(sidebandData);
+    return sidebandData;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandServiceUrl, const std::string& usageId, int64_t bufferSize, bool lowLatency)
 {    
     auto tokens = SplitUrlString(sidebandServiceUrl);
-    auto socket = ConnectTCPSocket(tokens[0], tokens[1], usageId);
-    auto sidebandData = new SocketSidebandData(socket, usageId, 1024 * 1024);
+    auto sidebandData = new SocketSidebandData(usageId, bufferSize, lowLatency);
+    sidebandData->ConnectToSocket(tokens[0], tokens[1], usageId, lowLatency);
     return sidebandData;
 }
 
@@ -227,14 +263,14 @@ SocketSidebandData* SocketSidebandData::ClientInit(const std::string& sidebandSe
 //---------------------------------------------------------------------
 bool SocketSidebandData::Write(const uint8_t* bytes, int64_t byteCount)
 {
-    return WriteToSocket(_socket, bytes, byteCount);    
+    return WriteToSocket(bytes, byteCount);    
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 bool SocketSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBytesRead)
 {
-    if (ReadFromSocket(_socket, bytes, bufferSize))
+    if (ReadFromSocket(bytes, bufferSize))
     {
         *numBytesRead = bufferSize;
         return true;
@@ -246,10 +282,10 @@ bool SocketSidebandData::Read(uint8_t* bytes, int64_t bufferSize, int64_t* numBy
 //---------------------------------------------------------------------
 bool SocketSidebandData::WriteLengthPrefixed(const uint8_t* bytes, int64_t byteCount)
 {
-    auto result = WriteToSocket(_socket, &byteCount, sizeof(int64_t));    
+    auto result = WriteToSocket(&byteCount, sizeof(int64_t));    
     if (result)
     {
-        result = WriteToSocket(_socket, bytes, byteCount);    
+        result = WriteToSocket(bytes, byteCount);    
     }
     return result;
 }
@@ -266,7 +302,7 @@ bool SocketSidebandData::ReadFromLengthPrefixed(uint8_t* bytes, int64_t bufferSi
 int64_t SocketSidebandData::ReadLengthPrefix()
 {
     int64_t bufferSize = 0;
-    ReadFromSocket(_socket, &bufferSize, sizeof(int64_t));
+    ReadFromSocket(&bufferSize, sizeof(int64_t));
     return bufferSize;
 }
 
@@ -284,9 +320,8 @@ std::string GetSocketsAddress()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-int RunSidebandSocketsAccept()
+int RunSidebandSocketsAccept(int port)
 {
-
     int sockfd, newsockfd;
     socklen_t clilen;
     struct sockaddr_in serv_addr;
@@ -305,11 +340,10 @@ int RunSidebandSocketsAccept()
     }
 
     memset((char *) &serv_addr, 0, sizeof(serv_addr));
-    int portno = TEST_TCP_PORT;
 
     serv_addr.sin_family = AF_INET;  
     serv_addr.sin_addr.s_addr = INADDR_ANY;  
-    serv_addr.sin_port = htons(portno);
+    serv_addr.sin_port = htons(port);
 
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     {
@@ -331,19 +365,7 @@ int RunSidebandSocketsAccept()
         }
         std::cout << "Connection!" << std::endl;
 
-        u_long iMode = 1;
-        ioctlsocket(newsockfd, FIONBIO, &iMode);
-
-        int yes = 1;
-        int result = setsockopt(newsockfd,
-            IPPROTO_TCP,
-            TCP_NODELAY,
-            (char*)&yes,
-            sizeof(int));
-
-        char buffer[32];
-        ReadFromSocket(newsockfd, buffer, 4);
-        AddServerSidebandSocket(newsockfd, std::string(buffer, 4));
+        SocketSidebandData::InitFromConnection(newsockfd);
     }
 #ifdef _WIN32
     closesocket(sockfd);

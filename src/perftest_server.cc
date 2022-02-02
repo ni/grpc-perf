@@ -200,7 +200,7 @@ Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const n
     response->set_sideband_identifier(identifier);
     response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
 
-    QueueSidebandConnection((::SidebandStrategy)request->strategy(), true, true, request->num_samples());
+    QueueSidebandConnection((::SidebandStrategy)request->strategy(), identifier, true, true, request->num_samples());
 	return Status::OK;
 }
 
@@ -304,7 +304,7 @@ grpc::Status NIMonikerServer::BeginMonikerSidebandStream(grpc::ServerContext* co
     response->set_sideband_identifier(identifier);
     response->set_connection_url(GetConnectionAddress(strategy));
     response->set_buffer_size(bufferSize);
-    QueueSidebandConnection(strategy, true, true, bufferSize);
+    QueueSidebandConnection(strategy, identifier, true, true, bufferSize);
 
     auto thread = new std::thread(RunSidebandReadWriteLoop, identifier, strategy);
     thread->detach();
@@ -531,7 +531,7 @@ int main(int argc, char **argv)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-    auto t = new std::thread(RunSidebandSocketsAccept);
+    auto t = new std::thread(RunSidebandSocketsAccept, 50055);
     threads.push_back(t);
 
     auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);

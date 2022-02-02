@@ -5,6 +5,7 @@
 #include "sideband_data.h"
 #include "sideband_internal.h"
 #include <condition_variable>
+#include <atomic>
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -37,6 +38,26 @@ uint8_t* SidebandData::SerializeBuffer()
 }
 
 
+std::atomic_int _nextId;
+std::string _zeroId = NextConnectionId();
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+int ConnectIdLength()
+{
+    return _zeroId.length();
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+std::string NextConnectionId()
+{
+    char buffer[20];
+    auto id = ++_nextId;
+    sprintf_s(buffer, "ID:%10d", id);
+    return buffer;
+}
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSize)
@@ -60,10 +81,10 @@ std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSiz
             break;
         case ::SidebandStrategy::SOCKETS:
         case ::SidebandStrategy::SOCKETS_LOW_LATENCY:
-            return "4444";
+            return NextConnectionId();
         case ::SidebandStrategy::RDMA:
         case ::SidebandStrategy::RDMA_LOW_LATENCY:
-            return "TEST_RDMA";
+            return NextConnectionId();
     }
     assert(false);
     return std::string();
@@ -95,7 +116,7 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
             break;
         case ::SidebandStrategy::SOCKETS:
         case ::SidebandStrategy::SOCKETS_LOW_LATENCY:
-            sidebandData = SocketSidebandData::ClientInit(sidebandServiceUrl, usageId);
+            sidebandData = SocketSidebandData::ClientInit(sidebandServiceUrl, usageId, bufferSize, strategy == ::SidebandStrategy::SOCKETS_LOW_LATENCY);
             break;
         case ::SidebandStrategy::RDMA:
             sidebandData = RdmaSidebandData::ClientInit(sidebandServiceUrl, false, usageId, bufferSize);
@@ -121,19 +142,6 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
 int64_t InitClientSidebandData(const BeginMonikerSidebandStreamResponse& response)
 {
     return InitClientSidebandData(response.connection_url(), (::SidebandStrategy)response.strategy(), response.sideband_identifier(), response.buffer_size());    
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-void AddServerSidebandSocket(int socket, const std::string& usageId)
-{    
-    std::unique_lock<std::mutex> lock(_bufferLockMutex);
-
-    auto sidebandData = new SocketSidebandData(socket, usageId, 1024 * 1024);
-    assert(_buffers.find(sidebandData->UsageId()) == _buffers.end());
-    _buffers.emplace(usageId, sidebandData);
-
-    _bufferLock.notify_all();
 }
 
 //---------------------------------------------------------------------
@@ -193,7 +201,6 @@ std::string GetConnectionAddress(::SidebandStrategy strategy)
     std::cout << "Connection address: " << address << std::endl;
     return address;
 }
-
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

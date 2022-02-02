@@ -110,7 +110,8 @@ private:
 class SocketSidebandData : public SidebandData
 {
 public:
-    SocketSidebandData(uint64_t socket, const std::string& id, int64_t bufferSize);
+    SocketSidebandData(const std::string& id, int64_t bufferSize, bool lowLatency);
+    SocketSidebandData(uint64_t socket, int64_t bufferSize, bool lowLatency);
     virtual ~SocketSidebandData();
 
     bool Write(const uint8_t* bytes, int64_t byteCount) override;
@@ -122,13 +123,24 @@ public:
     const std::string& UsageId() override;
 
 public:
-    static SocketSidebandData* ClientInit(const std::string& sidebandServiceUrl, const std::string& usageId);
+    static SocketSidebandData* InitFromConnection(int socket);
+    static SocketSidebandData* ClientInit(const std::string& sidebandServiceUrl, const std::string& usageId, int64_t bufferSize, bool lowLatency);
+
+private:
+    void ReadConnectionId();
+    void ConnectToSocket(std::string address, std::string port, std::string usageId, bool lowLatency);
+    bool WriteToSocket(const void* buffer, int64_t numBytes);
+    bool ReadFromSocket(void* buffer, int64_t numBytes);
 
 private:
     std::string _id;
     uint64_t _socket;
-};
+    bool _lowLatency;
 
+private:
+    static bool _nextConnectLowLatency;
+    static int64_t _nextConnectBufferSize;
+};
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -165,9 +177,10 @@ private:
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void AddServerSidebandSocket(int socket, const std::string& usageId);
 void RegisterSidebandData(SidebandData* sidebandData);
 std::vector<std::string> SplitUrlString(const std::string& s);
+int ConnectIdLength();
+std::string NextConnectionId();
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

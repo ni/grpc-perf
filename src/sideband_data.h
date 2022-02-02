@@ -36,13 +36,13 @@ int64_t InitClientSidebandData(const BeginMonikerSidebandStreamResponse& respons
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-int RunSidebandSocketsAccept();
+int RunSidebandSocketsAccept(int port);
 int AcceptSidebandRdmaSendRequests();
 int AcceptSidebandRdmaReceiveRequests();
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void QueueSidebandConnection(::SidebandStrategy strategy, bool waitForReader, bool waitForWriter, int64_t bufferSize);
+void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize);
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
