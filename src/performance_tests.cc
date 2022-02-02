@@ -147,21 +147,14 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
     auto value = sidebandRequest.mutable_data()->add_values();
     value->PackFrom(toPack);
 
-    std::cout << "Start Warmup" << std::endl;
-
     MonikerReadResponse sidebandResponse;
     for (int x=0; x<10; ++x)
     {
         WriteSidebandMessage(sidebandToken, sidebandRequest);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(0));
-        //sched_yield();
         ReadSidebandMessage(sidebandToken, &sidebandResponse);
-        std::this_thread::sleep_for(std::chrono::milliseconds(0));
     }
-    std::cout << "Done with warmup" << std::endl;
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     
-    for (int x=0; x<100; ++x)
+    for (int x=0; x<1000; ++x)
     {
         auto start = chrono::high_resolution_clock::now();
         WriteSidebandMessage(sidebandToken, sidebandRequest);
@@ -169,7 +162,7 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
         auto end = chrono::high_resolution_clock::now();
         auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
         times.emplace_back(elapsed);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(0));
     }
     sidebandRequest.set_complete(true);
     WriteSidebandMessage(sidebandToken, sidebandRequest);
@@ -184,7 +177,6 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
 void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, niPerfTest::SidebandStrategy strategy)
 {
     auto thread = new std::thread(ThreadPerformSidebandMonikerLatencyTest, &client, numSamples, strategy);
-    std::this_thread::sleep_for(std::chrono::milliseconds(60000));
     thread->join();
 }
 

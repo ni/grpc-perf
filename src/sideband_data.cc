@@ -96,7 +96,6 @@ int64_t InitClientSidebandData(const std::string& sidebandServiceUrl, ::Sideband
         case ::SidebandStrategy::SOCKETS:
         case ::SidebandStrategy::SOCKETS_LOW_LATENCY:
             sidebandData = SocketSidebandData::ClientInit(sidebandServiceUrl, usageId);
-            insert = false;
             break;
         case ::SidebandStrategy::RDMA:
             sidebandData = RdmaSidebandData::ClientInit(sidebandServiceUrl, false, usageId, bufferSize);
