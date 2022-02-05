@@ -38,8 +38,10 @@
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+Semaphore SocketSidebandData::_connectQueue;
 bool SocketSidebandData::_nextConnectLowLatency;
 int64_t SocketSidebandData::_nextConnectBufferSize;
+std::string SocketSidebandData::_nextConnectionId;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -234,6 +236,20 @@ void SocketSidebandData::ReadConnectionId()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void SocketSidebandData::QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, int64_t bufferSize)
+{
+    _connectQueue.wait();
+#ifdef _WIN32
+    _nextConnectLowLatency = false;
+#else
+    _nextConnectLowLatency = strategy == ::SidebandStrategy::SOCKETS_LOW_LATENCY;
+#endif
+    _nextConnectBufferSize = bufferSize;
+    _nextConnectionId = id;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 SocketSidebandData* SocketSidebandData::InitFromConnection(int socket)
 {
     if (_nextConnectLowLatency)
@@ -246,6 +262,7 @@ SocketSidebandData* SocketSidebandData::InitFromConnection(int socket)
     auto sidebandData = new SocketSidebandData(socket, _nextConnectBufferSize, _nextConnectLowLatency);
     sidebandData->ReadConnectionId();
     RegisterSidebandData(sidebandData);
+    _connectQueue.notify();
     return sidebandData;
 }
 
