@@ -79,6 +79,13 @@ RdmaSidebandData::~RdmaSidebandData()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void RdmaSidebandData::QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize)
+{
+    RdmaSidebandDataImp::QueueSidebandConnection(strategy, id, waitForReader, waitForWriter, bufferSize);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 RdmaSidebandData* RdmaSidebandData::ClientInit(const std::string& sidebandServiceUrl, bool lowLatency, const std::string& usageId, int64_t bufferSize)
 {
 #ifdef _WIN32
@@ -493,26 +500,6 @@ std::string GetRdmaAddress()
     }
     assert(interfaces.size() == 1);
     return interfaces.front();    
-}
-
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize)
-{
-    bool lowLatency = false;
-    switch (strategy)
-    {
-        case ::SidebandStrategy::RDMA:
-            break;
-        case ::SidebandStrategy::RDMA_LOW_LATENCY:
-            lowLatency = true;
-            break;
-        default:
-            // don't need to queue for non RDMA strategies
-            return;
-    }
-    RdmaSidebandDataImp::QueueSidebandConnection(strategy, id, waitForReader, waitForWriter, bufferSize);
 }
 
 //---------------------------------------------------------------------

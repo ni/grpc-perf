@@ -60,6 +60,25 @@ std::string NextConnectionId()
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize)
+{
+    switch (strategy)
+    {
+    case ::SidebandStrategy::RDMA:
+    case ::SidebandStrategy::RDMA_LOW_LATENCY:
+        RdmaSidebandData::QueueSidebandConnection(strategy, id, waitForReader, waitForWriter, bufferSize);
+        break;
+    case ::SidebandStrategy::SOCKETS:
+    case ::SidebandStrategy::SOCKETS_LOW_LATENCY:
+        SocketSidebandData::QueueSidebandConnection(strategy, id, bufferSize);
+    default:
+        // don't need to queue for non RDMA strategies
+        return;
+    }
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 std::string InitOwnerSidebandData(::SidebandStrategy strategy, int64_t bufferSize)
 {
     std::unique_lock<std::mutex> lock(_bufferLockMutex);

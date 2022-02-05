@@ -5,6 +5,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+#include <Semaphore.h>
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -123,6 +124,7 @@ public:
     const std::string& UsageId() override;
 
 public:
+    static void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, int64_t bufferSize);
     static SocketSidebandData* InitFromConnection(int socket);
     static SocketSidebandData* ClientInit(const std::string& sidebandServiceUrl, const std::string& usageId, int64_t bufferSize, bool lowLatency);
 
@@ -138,8 +140,10 @@ private:
     bool _lowLatency;
 
 private:
+    static Semaphore _connectQueue;
     static bool _nextConnectLowLatency;
     static int64_t _nextConnectBufferSize;
+    static std::string _nextConnectionId;
 };
 
 //---------------------------------------------------------------------
@@ -168,6 +172,7 @@ public:
     uint8_t* BeginDirectWrite() override;
     bool FinishDirectWrite(int64_t byteCount) override;
 public:
+    static void QueueSidebandConnection(::SidebandStrategy strategy, const std::string& id, bool waitForReader, bool waitForWriter, int64_t bufferSize);
     static RdmaSidebandData* ClientInit(const std::string& sidebandServiceUrl, bool lowLatency, const std::string& usageId, int64_t bufferSize);
 
 private:
