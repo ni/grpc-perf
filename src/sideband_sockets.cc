@@ -121,13 +121,13 @@ void SocketSidebandData::ConnectToSocket(std::string address, std::string port, 
     if (_socket < 0) 
     {
         std::cout << "ERROR opening socket" << std::endl;
-        return 0;
+        return;
     }
     server = gethostbyname(address.c_str());
     if (server == NULL)
     {
         std::cout << "ERROR, no such host" << std::endl;
-        return 0;
+        return;
     }
     bzero((char*)&serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -136,14 +136,16 @@ void SocketSidebandData::ConnectToSocket(std::string address, std::string port, 
     if (connect(_socket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     { 
         std::cout << "ERROR connecting" << std::endl;
-        return -1;
+        return;
     }
 #endif
 
     if (lowLatency)
     {
+#ifdef _WIN32
         u_long iMode = 1;
         ioctlsocket(_socket, FIONBIO, &iMode);
+#endif
         int yes = 1;
         int result = setsockopt(_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(int));
     }
@@ -183,11 +185,17 @@ bool SocketSidebandData::ReadFromSocket(void* buffer, int64_t numBytes)
     {        
         int n;
         int wsaError;
+#ifdef _WIN32
+        do
+        {
+            n = recv(_socket, start, remainingBytes, 0);
+        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || wsaError == WSAEWOULDBLOCK));
+#else
         do
         {
             n = recv(_socket, start, remainingBytes, 0); // MSG_NOWAIT
-            wsaError = WSAGetLastError();
-        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || wsaError == WSAEWOULDBLOCK));
+        } while (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK));
+#endif
 
         if (n < 0)
         {
@@ -238,8 +246,10 @@ SocketSidebandData* SocketSidebandData::InitFromConnection(int socket)
 {
     if (_nextConnectLowLatency)
     {
+#ifdef _WIN32
         u_long iMode = 1;
         ioctlsocket(socket, FIONBIO, &iMode);
+#endif
         int yes = 1;
         int result = setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(int));
     }

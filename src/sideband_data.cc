@@ -54,7 +54,7 @@ std::string NextConnectionId()
 {
     char buffer[20];
     auto id = ++_nextId;
-    sprintf_s(buffer, "ID:%10d", id);
+    sprintf(buffer, "ID:%10d", id);
     return buffer;
 }
 
