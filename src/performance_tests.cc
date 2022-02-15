@@ -2,6 +2,7 @@
 //---------------------------------------------------------------------
 #include <client_utilities.h>
 #include <sideband_data.h>
+#include <sideband_grpc.h>
 #include <performance_tests.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>

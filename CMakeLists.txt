@@ -28,6 +28,11 @@ link_directories(.)
 add_subdirectory(third_party/grpc ${CMAKE_CURRENT_BINARY_DIR}/grpc EXCLUDE_FROM_ALL)
 
 #----------------------------------------------------------------------
+# Include the gRPC's cmake build
+#----------------------------------------------------------------------
+add_subdirectory(third_party/grpc-sideband ${CMAKE_CURRENT_BINARY_DIR}/grpc-sideband)
+
+#----------------------------------------------------------------------
 # Use the grpc targets directly from this build.
 #----------------------------------------------------------------------
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
@@ -70,7 +75,7 @@ add_custom_command(
 #----------------------------------------------------------------------
 # Include generated *.pb.h files
 #----------------------------------------------------------------------
-include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc" "./third_party/grpc-sideband/src")
 
 #----------------------------------------------------------------------
 # perftest gRPC Server
@@ -80,14 +85,11 @@ add_executable(perftest_server
   src/client_utilities.cc
   src/performance_tests.cc
   src/user_mode_networking.cc
-  src/sideband_data.cc
-  src/sideband_sockets.cc
-  src/sideband_shared_memory.cc
-  src/sideband_rdma.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   )
 target_link_libraries(perftest_server
+  ni_grpc_sideband
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
@@ -102,15 +104,12 @@ target_link_libraries(perftest_server
 add_executable(perftest_client
   src/perftest_client.cc
   src/client_utilities.cc
-  src/sideband_data.cc
-  src/sideband_sockets.cc
-  src/sideband_shared_memory.cc
-  src/sideband_rdma.cc
   src/performance_tests.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   )
 target_link_libraries(perftest_client
+  ni_grpc_sideband
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}

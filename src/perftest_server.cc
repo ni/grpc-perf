@@ -3,6 +3,7 @@
 #include <client_utilities.h>
 #include <sideband_data.h>
 #include <sideband_internal.h>
+#include <sideband_grpc.h>
 #include <performance_tests.h>
 #include <thread>
 #include <sstream>
