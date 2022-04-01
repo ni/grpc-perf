@@ -39,6 +39,7 @@ using grpc::Status;
 using namespace std;
 using namespace niPerfTest;
 using namespace google::protobuf;
+using namespace ni::data_monikers;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -223,18 +224,18 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
         }
         switch (request.strategy())
         {
-            case niPerfTest::SidebandStrategy::RDMA:
-            case niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY:
-            case niPerfTest::SidebandStrategy::SOCKETS:
-            case niPerfTest::SidebandStrategy::SOCKETS_LOW_LATENCY:
+            case ni::data_monikers::SidebandStrategy::RDMA:
+            case ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY:
+            case ni::data_monikers::SidebandStrategy::SOCKETS:
+            case ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY:
                 stream->Write(response);
                 WriteSidebandData(sidebandToken, buffer, request.num_samples());
                 break;
-            case niPerfTest::SidebandStrategy::SHARED_MEMORY:
+            case ni::data_monikers::SidebandStrategy::SHARED_MEMORY:
                 WriteSidebandData(sidebandToken, buffer, request.num_samples());
                 stream->Write(response);
                 break;
-            case niPerfTest::SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY:
+            case ni::data_monikers::SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY:
                 if (firstWrite)
                 {
                     firstWrite = false;
@@ -259,7 +260,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
     {
         cpu_set_t cpuSet;
         CPU_ZERO(&cpuSet);
-        CPU_SET(10, &cpuSet);
+        CPU_SET(4, &cpuSet);
         pid_t threadId = syscall(SYS_gettid);
         sched_setaffinity(threadId, sizeof(cpu_set_t), &cpuSet);
     }
@@ -272,18 +273,18 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
     std::cout << "Starting sideband loop" << std::endl;
     while (true)
     {
-        MonikerWriteRequest request;
-        MonikerReadResponse response;
+        SidebandWriteRequest request;
+        SidebandReadResponse response;
         if (!ReadSidebandMessage(sidebandToken, &request))
         {
             break;
         }
-        if (request.complete())
+        if (request.cancel())
         {
             break;
         }
-        auto result = response.add_values();
-        result->CopyFrom(request.data().values().at(0));
+        auto result = response.mutable_values()->add_values();
+        result->CopyFrom(request.values().values().at(0));
         if (!WriteSidebandMessage(sidebandToken, response))
         {
             break;
@@ -295,7 +296,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-grpc::Status NIMonikerServer::BeginMonikerSidebandStream(grpc::ServerContext* context, const niPerfTest::BeginMonikerSidebandStreamRequest* request, niPerfTest::BeginMonikerSidebandStreamResponse* response)
+grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context, const ::ni::data_monikers::BeginMonikerSidebandStreamRequest* request, ::ni::data_monikers::BeginMonikerSidebandStreamResponse* response)
 {
     auto bufferSize = 1024 * 1024;
     auto strategy = static_cast<::SidebandStrategy>(request->strategy());
@@ -315,21 +316,21 @@ grpc::Status NIMonikerServer::BeginMonikerSidebandStream(grpc::ServerContext* co
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-grpc::Status NIMonikerServer::StreamReadWrite(grpc::ServerContext* context, grpc::ServerReaderWriter<::niPerfTest::MonikerReadResponse, niPerfTest::MonikerWriteRequest>* stream)
+grpc::Status NIMonikerServer::StreamReadWrite(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::ni::data_monikers::MonikerReadResult, ::ni::data_monikers::MonikerWriteRequest>* stream)
 {    
     return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-grpc::Status NIMonikerServer::StreamRead(grpc::ServerContext* context, const niPerfTest::MonikerList* request, ::grpc::ServerWriter<niPerfTest::MonikerReadResponse>* writer)
+grpc::Status NIMonikerServer::StreamRead(::grpc::ServerContext* context, const ::ni::data_monikers::MonikerList* request, ::grpc::ServerWriter< ::ni::data_monikers::MonikerReadResult>* writer)
 {    
     return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-grpc::Status NIMonikerServer::StreamWrite(grpc::ServerContext* context, grpc::ServerReaderWriter<::niPerfTest::StreamWriteResponse, niPerfTest::MonikerWriteRequest>* stream)
+grpc::Status NIMonikerServer::StreamWrite(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::ni::data_monikers::StreamWriteResponse, ::ni::data_monikers::MonikerWriteRequest>* stream)
 {    
     return Status::OK;
 }
@@ -532,7 +533,7 @@ int main(int argc, char **argv)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-    auto t = new std::thread(RunSidebandSocketsAccept, 50055);
+    auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
     threads.push_back(t);
 
     auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);

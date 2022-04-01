@@ -6,6 +6,7 @@
 //---------------------------------------------------------------------
 #include <grpcpp/grpcpp.h>
 #include <perftest.grpc.pb.h>
+#include <data_moniker.grpc.pb.h>
 #include <memory>
 
 //---------------------------------------------------------------------
@@ -14,6 +15,7 @@ using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 using namespace niPerfTest;
+using namespace ni::data_monikers;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

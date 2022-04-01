@@ -48,11 +48,11 @@ public:
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-class NIMonikerServer final : public niPerfTest::MonikerService::Service
+class NIMonikerServer final : public ni::data_monikers::MonikerService::Service
 {
 public:
-    grpc::Status BeginMonikerSidebandStream(grpc::ServerContext* context, const niPerfTest::BeginMonikerSidebandStreamRequest* request, niPerfTest::BeginMonikerSidebandStreamResponse* response) override;
-    grpc::Status StreamReadWrite(grpc::ServerContext* context, grpc::ServerReaderWriter< ::niPerfTest::MonikerReadResponse, niPerfTest::MonikerWriteRequest>* stream) override;
-    grpc::Status StreamRead(grpc::ServerContext* context, const niPerfTest::MonikerList* request, ::grpc::ServerWriter< niPerfTest::MonikerReadResponse>* writer) override;
-    grpc::Status StreamWrite(grpc::ServerContext* context, grpc::ServerReaderWriter< ::niPerfTest::StreamWriteResponse, niPerfTest::MonikerWriteRequest>* stream) override;
+    ::grpc::Status BeginSidebandStream(::grpc::ServerContext* context, const ::ni::data_monikers::BeginMonikerSidebandStreamRequest* request, ::ni::data_monikers::BeginMonikerSidebandStreamResponse* response) override;
+    ::grpc::Status StreamReadWrite(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::ni::data_monikers::MonikerReadResult, ::ni::data_monikers::MonikerWriteRequest>* stream) override;
+    ::grpc::Status StreamRead(::grpc::ServerContext* context, const ::ni::data_monikers::MonikerList* request, ::grpc::ServerWriter< ::ni::data_monikers::MonikerReadResult>* writer) override;
+    ::grpc::Status StreamWrite(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::ni::data_monikers::StreamWriteResponse, ::ni::data_monikers::MonikerWriteRequest>* stream) override;
 };

@@ -32,6 +32,7 @@ using std::endl;
 
 using namespace std;
 using namespace niPerfTest;
+using namespace ni::data_monikers;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -110,14 +111,14 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSamples, niPerfTest::SidebandStrategy strategy)
+void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSamples, ni::data_monikers::SidebandStrategy strategy)
 {
     std::cout << "Start Sideband moniker latency test, "  << numSamples << " Samples" << std::endl;
     ClientContext ctx;
     BeginMonikerSidebandStreamRequest request;
     request.set_strategy(strategy);
     BeginMonikerSidebandStreamResponse response;
-    client->m_Stub->BeginMonikerSidebandStream(&ctx, request, &response);
+    client->m_Stub->BeginSidebandStream(&ctx, request, &response);
 
 #ifndef _WIN32
     if (strategy == ::niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY ||
@@ -144,11 +145,11 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
         toPack.add_samples(x);
     }
 
-    MonikerWriteRequest sidebandRequest;
-    auto value = sidebandRequest.mutable_data()->add_values();
+    SidebandWriteRequest sidebandRequest;
+    auto value = sidebandRequest.mutable_values()->add_values();
     value->PackFrom(toPack);
 
-    MonikerReadResponse sidebandResponse;
+    MonikerReadResult sidebandResponse;
     for (int x=0; x<10; ++x)
     {
         WriteSidebandMessage(sidebandToken, sidebandRequest);
@@ -165,7 +166,7 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
         times.emplace_back(elapsed);
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
     }
-    sidebandRequest.set_complete(true);
+    sidebandRequest.set_cancel(true);
     WriteSidebandMessage(sidebandToken, sidebandRequest);
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     CloseSidebandData(sidebandToken);
@@ -175,7 +176,7 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, niPerfTest::SidebandStrategy strategy)
+void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy)
 {
     auto thread = new std::thread(ThreadPerformSidebandMonikerLatencyTest, &client, numSamples, strategy);
     thread->join();
@@ -183,7 +184,7 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, niPerfTest::SidebandStrategy strategy, bool fastMemcpy, const std::string& message)
+void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy, bool fastMemcpy, const std::string& message)
 {
     cout << "Start Sideband Read Test " << message << endl;
 

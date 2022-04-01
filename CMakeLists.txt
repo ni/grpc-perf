@@ -52,6 +52,29 @@ endif()
 #----------------------------------------------------------------------
 # Proto file
 #----------------------------------------------------------------------
+get_filename_component(datamoniker_proto "data_moniker.proto" ABSOLUTE)
+get_filename_component(datamoniker_proto_path "${datamoniker_proto}" PATH)
+
+#----------------------------------------------------------------------
+# Generated data moniker sources
+#----------------------------------------------------------------------
+set(datamoniker_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.pb.cc")
+set(datamoniker_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.pb.h")
+set(datamoniker_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.grpc.pb.cc")
+set(datamoniker_grpc_hdrs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.grpc.pb.h")
+add_custom_command(
+  OUTPUT "${datamoniker_proto_srcs}" "${datamoniker_proto_hdrs}" "${datamoniker_grpc_srcs}" "${datamoniker_grpc_hdrs}"
+  COMMAND ${_PROTOBUF_PROTOC}
+  ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+    --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+    -I "${datamoniker_proto_path}" -I "${CMAKE_CURRENT_SOURCE_DIR}/third_party/grpc/third_party/protobuf/src"
+    --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+    "${datamoniker_proto}"
+  DEPENDS "${datamoniker_proto}")
+
+#----------------------------------------------------------------------
+# Proto file
+#----------------------------------------------------------------------
 get_filename_component(perftest_proto "perftest.proto" ABSOLUTE)
 get_filename_component(perftest_proto_path "${perftest_proto}" PATH)
 
@@ -87,6 +110,8 @@ add_executable(perftest_server
   src/user_mode_networking.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
+  ${datamoniker_proto_srcs}
+  ${datamoniker_grpc_srcs}
   )
 target_link_libraries(perftest_server
   ni_grpc_sideband
@@ -107,6 +132,8 @@ add_executable(perftest_client
   src/performance_tests.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
+  ${datamoniker_proto_srcs}
+  ${datamoniker_grpc_srcs}
   )
 target_link_libraries(perftest_client
   ni_grpc_sideband
@@ -126,6 +153,8 @@ add_executable(perftest_proxy
   src/proxy_server.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
+  ${datamoniker_proto_srcs}
+  ${datamoniker_grpc_srcs}
   )
 target_link_libraries(perftest_proxy
   ${_REFLECTION}
