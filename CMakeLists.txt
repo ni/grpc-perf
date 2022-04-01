@@ -6,9 +6,8 @@ project(grpc-perf C CXX)
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  set(RDMA_LIB "libnirdma.so")
-  SET(LVRT_LIB "liblvrt.so")
   SET(DETOURS_LIB "")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--allow-shlib-undefined")
 else()
   cmake_policy(SET CMP0091 NEW)
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
@@ -47,6 +46,22 @@ if(CMAKE_CROSSCOMPILING)
   find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
 else()
   set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
+endif()
+
+#----------------------------------------------------------------------
+# Define libraries to link
+#----------------------------------------------------------------------
+if(WIN32)
+  link_directories("./imports/lib/win64")
+else()
+  # Add grpc-sideband deps here
+  link_directories("./imports/lib/linux")
+endif()
+
+if(NOT MSVC)
+  set(RDMA_LIB "libnirdma.so")
+else()
+  set(RDMA_LIB "rdma.lib")
 endif()
 
 #----------------------------------------------------------------------

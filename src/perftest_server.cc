@@ -479,7 +479,7 @@ void RunServer(int argc, char **argv, const char* server_address)
 
 	// Assemble the server.
 	auto server = builder.BuildAndStart();
-	_inProcServer = server->InProcessChannel(grpc_impl::ChannelArguments());
+	_inProcServer = server->InProcessChannel(grpc::ChannelArguments());
 	cout << "Server listening on " << server_address << endl;
 	server->Wait();
 }
