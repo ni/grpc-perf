@@ -1,11 +1,11 @@
-# Contributing to labview-grpc-query-server
+# Contributing to grpc-perf
 
-Contributions to labview-grpc-query-server are welcome from all!
+Contributions to grpc-perf are welcome from all!
 
-labview-grpc-query-server is managed via [git](https://git-scm.com), with the canonical upstream
+grpc-perf is managed via [git](https://git-scm.com), with the canonical upstream
 repository hosted on [GitHub](https://github.com/ni/<reponame>/).
 
-labview-grpc-query-server follows a pull-request model for development.  If you wish to
+grpc-perf follows a pull-request model for development.  If you wish to
 contribute, you will need to create a GitHub account, fork this project, push a
 branch with your changes to your project, and then submit a pull request.
 
@@ -46,4 +46,4 @@ See [GitHub's official documentation](https://help.github.com/articles/using-pul
 (taken from [developercertificate.org](https://developercertificate.org/))
 
 See [LICENSE](https://github.com/ni/<reponame>/blob/master/LICENSE)
-for details about how labview-grpc-query-server is licensed.
+for details about how grpc-perf is licensed.

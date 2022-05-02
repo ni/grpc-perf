@@ -19,7 +19,7 @@ To prepare for cmake + Microsoft Visual C++ compiler build
 Download the repo and update submodules, this will pull the gRPC components and all dependencies
 
 ```
-> git clone https://github.com/ni/labview-grpc-query-server.git labview-grpc-query-server
+> git clone https://github.com/ni/grpc-perf grpc-perf
 > cd grpc-perf
 > git submodule update --init --recursive
 ```
@@ -45,7 +45,7 @@ Build Release
 Download the repo and update submodules, this will pull the gRPC components and all dependencies
 
 ```
-> git clone https://github.com/ni/labview-grpc-query-server.git labview-grpc-query-server
+> git clone https://github.com/ni/grpc-perf grpc-perf
 > cd grpc-perf
 > git submodule update --init --recursive
 ```
@@ -85,8 +85,8 @@ Install required packages not installed by default
 Download the repo and update submodules, this will pull the gRPC components and all dependencies
 
 ```
-> git clone https://github.com/ni/labview-grpc-query-server.git labview-grpc-query-server
-> cd labview-grpc-query-server
+> git clone https://github.com/ni/grpc-perf grpc-perf
+> cd grpc-perf
 > git submodule update --init --recursive
 ```
 
@@ -137,7 +137,7 @@ echo Generate server key:
 openssl genrsa -passout pass:$mypass -des3 -out server.key 4096
 
 echo Generate server signing request:
-openssl req -passin pass:$mypass -new -key server.key -out server.csr -subj  "/C=US/ST=TX/L=Austin/O=NI/OU=labview/CN=localhost"
+openssl req -passin pass:$mypass -new -key server.key -out server.csr -subj  "/C=US/ST=TX/L=Austin/O=NI/OU=perftest/CN=localhost"
 
 echo Self-sign server certificate:
 openssl x509 -req -passin pass:$mypass -days 365 -in server.csr -signkey server.key -set_serial 01 -out server.crt
