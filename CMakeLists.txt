@@ -6,15 +6,13 @@ project(grpc-perf C CXX)
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  SET(DETOURS_LIB "")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--allow-shlib-undefined")
 else()
   cmake_policy(SET CMP0091 NEW)
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  SET(DETOURS_LIB "detours.lib")
-  set(RDMA_LIB "rdma.lib")
+  set(RDMA_LIB "imports/lib/rdma.lib")
   SET(LVRT_LIB "")
 endif()
 
@@ -122,7 +120,6 @@ add_executable(perftest_server
   src/perftest_server.cc
   src/client_utilities.cc
   src/performance_tests.cc
-  src/user_mode_networking.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}
@@ -158,20 +155,3 @@ target_link_libraries(perftest_client
   ${RDMA_LIB}
   ${LVRT_LIB}
   )
-
-#----------------------------------------------------------------------
-# Simple proto specific proxy
-# Goal is to test what perf of a proxy could be
-#----------------------------------------------------------------------
-add_executable(perftest_proxy
-  src/proxy_client.cc
-  src/proxy_server.cc
-  ${perftest_proto_srcs}
-  ${perftest_grpc_srcs}
-  ${datamoniker_proto_srcs}
-  ${datamoniker_grpc_srcs}
-  )
-target_link_libraries(perftest_proxy
-  ${_REFLECTION}
-  ${_GRPC_GRPCPP}
-  ${_PROTOBUF_LIBPROTOBUF})
