@@ -152,6 +152,21 @@ Status NIPerfTestServer::Read(ServerContext* context, const niPerfTest::ReadPara
 }
 
 //---------------------------------------------------------------------
+Status NIPerfTestServer::ReadComplex(ServerContext* context, const niPerfTest::ReadParameters* request, niPerfTest::ReadComplexResult* response)
+{	
+	response->mutable_samples()->Reserve(request->num_samples());
+    for (int x=0; x<request->num_samples(); ++x)
+    {
+        auto sample = new niPerfTest::ComplexNumber();
+        sample->set_real(3.14);
+        sample->set_imaginary(4.56);
+	    response->mutable_samples()->AddAllocated(sample);
+    }
+	response->set_status(0);
+	return Status::OK;
+}
+
+//---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::TestWrite(ServerContext* context, const niPerfTest::TestWriteParameters* request, niPerfTest::TestWriteResult* response)
 {

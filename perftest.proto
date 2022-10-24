@@ -33,6 +33,7 @@ service niPerfTestService {
   rpc ConfigureHorizontalTiming(ConfigureHorizontalTimingRequest) returns (ConfigureHorizontalTimingResponse);    
   rpc InitiateAcquisition(InitiateAcquisitionRequest) returns (InitiateAcquisitionResponse);
   rpc Read(ReadParameters) returns (ReadResult) {};
+  rpc ReadComplex(ReadParameters) returns (ReadComplexResult) {};
   rpc ReadContinuously(ReadContinuouslyParameters) returns (stream ReadContinuouslyResult) {};
 }
 
@@ -83,6 +84,16 @@ message ReadParameters {
 message ReadResult {
   int32 status = 1;
   repeated double samples = 2;
+}
+
+message ComplexNumber {
+  double real = 1;
+  double imaginary = 2;
+}
+
+message ReadComplexResult {
+  int32 status = 1;
+  repeated ComplexNumber samples = 2;
 }
 
 message TestWriteParameters {

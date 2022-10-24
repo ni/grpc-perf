@@ -45,6 +45,7 @@ public:
     int ConfigureHorizontalTiming(std::string vi, double min_sample_rate, int min_num_pts, double ref_position, int num_records, bool enforce_realtime);
     int InitiateAcquisition(std::string vi);
     int Read(double timeout, int numSamples, double* samples);
+    int ReadComplex(double timeout, int numSamples);
     int TestWrite(int numSamples, double* samples);
     std::unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> ReadContinuously(grpc::ClientContext* context, double timeout, int numSamples, int numIterations);
 public:

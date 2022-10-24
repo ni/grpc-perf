@@ -12,7 +12,7 @@ if __name__ == "__main__":
     iterations = 10000
     iteration = 0
     #samples = 131072
-    samples = 10000
+    samples = 100
 
     print("Start Test")
     # Open session to NI-SCOPE module with options.

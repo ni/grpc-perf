@@ -491,7 +491,32 @@ void PerformReadTest(NIPerfTestClient& client, int numSamples, int numIterations
     double timePerMessage = elapsed.count() / numIterations;
 
     delete [] samples;
-    cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl << endl;
+    cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl;
+    ReportMBPerSecond(start, end, numSamples, numIterations);
+    std::cout << endl;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformReadComplexTest(NIPerfTestClient& client, int numSamples, int numIterations)
+{    
+    cout << "Start " << numSamples << " Read Complex Test" << endl;
+
+    int index = 0;
+
+    auto start = chrono::high_resolution_clock::now();
+    for (int x=0; x<numIterations; ++x)
+    {
+        client.ReadComplex(1000, numSamples);
+    }
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+    double msgsPerSecond = (numIterations * 1000.0 * 1000.0) / (double)elapsed.count();
+    double timePerMessage = elapsed.count() / numIterations;
+
+    cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl;
+    ReportMBPerSecond(start, end, numSamples, numIterations);
+    std::cout << endl;
 }
 
 //---------------------------------------------------------------------

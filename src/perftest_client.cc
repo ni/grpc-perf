@@ -303,12 +303,27 @@ void RunSteamingTestSuite(NIPerfTestClient& client)
 void RunReadTestSuite(NIPerfTestClient& client)
 {
     cout << "Start Read Test Suite" << endl;
-    PerformReadTest(client, 100, 100000);
-    PerformReadTest(client, 1000, 100000);
-    PerformReadTest(client, 10000, 100000);
-    PerformReadTest(client, 100000, 100000);
-    PerformReadTest(client, 200000, 100000);
-    PerformReadTest(client, 393216, 100000);
+    PerformReadTest(client, 100, 1000);
+    PerformReadTest(client, 1000, 1000);
+    PerformReadTest(client, 10000, 1000);
+    PerformReadTest(client, 100000, 1000);
+    PerformReadTest(client, 800000, 1000);
+    // PerformReadTest(client, 200000, 10000);
+    // PerformReadTest(client, 393216, 10000);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void RunReadComplexTestSuite(NIPerfTestClient& client)
+{
+    cout << "Start Read Complex Test Suite" << endl;
+    PerformReadComplexTest(client, 100, 1000);
+    PerformReadComplexTest(client, 1000, 1000);
+    PerformReadComplexTest(client, 10000, 1000);
+    PerformReadComplexTest(client, 100000, 1000);
+    PerformReadComplexTest(client, 400000, 1000);
+    // PerformReadTest(client, 200000, 10000);
+    // PerformReadTest(client, 393216, 10000);
 }
 
 //---------------------------------------------------------------------
@@ -452,6 +467,9 @@ int main(int argc, char **argv)
     }
 
     // Run desired test suites
+    RunReadTestSuite(*client);
+    RunReadComplexTestSuite(*client);
+    RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
 
@@ -466,10 +484,10 @@ int main(int argc, char **argv)
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
 
-    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    PerformSidebandMonikerLatencyTest(*monikerClient, 1000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    PerformSidebandMonikerLatencyTest(*monikerClient, 100000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+    // PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+    // PerformSidebandMonikerLatencyTest(*monikerClient, 100000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1000000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
     return 0;   
 }

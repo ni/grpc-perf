@@ -42,6 +42,16 @@ class niPerfTestServiceStub(object):
                 request_serializer=perftest__pb2.TestWriteParameters.SerializeToString,
                 response_deserializer=perftest__pb2.TestWriteResult.FromString,
                 )
+        self.BeginTestSidebandStream = channel.unary_unary(
+                '/niPerfTest.niPerfTestService/BeginTestSidebandStream',
+                request_serializer=perftest__pb2.BeginTestSidebandStreamRequest.SerializeToString,
+                response_deserializer=perftest__pb2.BeginTestSidebandStreamResponse.FromString,
+                )
+        self.TestSidebandStream = channel.stream_stream(
+                '/niPerfTest.niPerfTestService/TestSidebandStream',
+                request_serializer=perftest__pb2.TestSidebandStreamRequest.SerializeToString,
+                response_deserializer=perftest__pb2.TestSidebandStreamResponse.FromString,
+                )
         self.Init = channel.unary_unary(
                 '/niPerfTest.niPerfTestService/Init',
                 request_serializer=perftest__pb2.InitParameters.SerializeToString,
@@ -66,6 +76,11 @@ class niPerfTestServiceStub(object):
                 '/niPerfTest.niPerfTestService/Read',
                 request_serializer=perftest__pb2.ReadParameters.SerializeToString,
                 response_deserializer=perftest__pb2.ReadResult.FromString,
+                )
+        self.ReadComplex = channel.unary_unary(
+                '/niPerfTest.niPerfTestService/ReadComplex',
+                request_serializer=perftest__pb2.ReadParameters.SerializeToString,
+                response_deserializer=perftest__pb2.ReadComplexResult.FromString,
                 )
         self.ReadContinuously = channel.unary_stream(
                 '/niPerfTest.niPerfTestService/ReadContinuously',
@@ -110,6 +125,18 @@ class niPerfTestServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def BeginTestSidebandStream(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def TestSidebandStream(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Init(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -135,6 +162,12 @@ class niPerfTestServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Read(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ReadComplex(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -174,6 +207,16 @@ def add_niPerfTestServiceServicer_to_server(servicer, server):
                     request_deserializer=perftest__pb2.TestWriteParameters.FromString,
                     response_serializer=perftest__pb2.TestWriteResult.SerializeToString,
             ),
+            'BeginTestSidebandStream': grpc.unary_unary_rpc_method_handler(
+                    servicer.BeginTestSidebandStream,
+                    request_deserializer=perftest__pb2.BeginTestSidebandStreamRequest.FromString,
+                    response_serializer=perftest__pb2.BeginTestSidebandStreamResponse.SerializeToString,
+            ),
+            'TestSidebandStream': grpc.stream_stream_rpc_method_handler(
+                    servicer.TestSidebandStream,
+                    request_deserializer=perftest__pb2.TestSidebandStreamRequest.FromString,
+                    response_serializer=perftest__pb2.TestSidebandStreamResponse.SerializeToString,
+            ),
             'Init': grpc.unary_unary_rpc_method_handler(
                     servicer.Init,
                     request_deserializer=perftest__pb2.InitParameters.FromString,
@@ -198,6 +241,11 @@ def add_niPerfTestServiceServicer_to_server(servicer, server):
                     servicer.Read,
                     request_deserializer=perftest__pb2.ReadParameters.FromString,
                     response_serializer=perftest__pb2.ReadResult.SerializeToString,
+            ),
+            'ReadComplex': grpc.unary_unary_rpc_method_handler(
+                    servicer.ReadComplex,
+                    request_deserializer=perftest__pb2.ReadParameters.FromString,
+                    response_serializer=perftest__pb2.ReadComplexResult.SerializeToString,
             ),
             'ReadContinuously': grpc.unary_stream_rpc_method_handler(
                     servicer.ReadContinuously,
@@ -303,6 +351,40 @@ class niPerfTestService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def BeginTestSidebandStream(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/niPerfTest.niPerfTestService/BeginTestSidebandStream',
+            perftest__pb2.BeginTestSidebandStreamRequest.SerializeToString,
+            perftest__pb2.BeginTestSidebandStreamResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def TestSidebandStream(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(request_iterator, target, '/niPerfTest.niPerfTestService/TestSidebandStream',
+            perftest__pb2.TestSidebandStreamRequest.SerializeToString,
+            perftest__pb2.TestSidebandStreamResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def Init(request,
             target,
             options=(),
@@ -388,6 +470,23 @@ class niPerfTestService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def ReadComplex(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/niPerfTest.niPerfTestService/ReadComplex',
+            perftest__pb2.ReadParameters.SerializeToString,
+            perftest__pb2.ReadComplexResult.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def ReadContinuously(request,
             target,
             options=(),
@@ -401,171 +500,5 @@ class niPerfTestService(object):
         return grpc.experimental.unary_stream(request, target, '/niPerfTest.niPerfTestService/ReadContinuously',
             perftest__pb2.ReadContinuouslyParameters.SerializeToString,
             perftest__pb2.ReadContinuouslyResult.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-
-class MonikerServiceStub(object):
-    """---------------------------------------------------------------------
-    ---------------------------------------------------------------------
-    """
-
-    def __init__(self, channel):
-        """Constructor.
-
-        Args:
-            channel: A grpc.Channel.
-        """
-        self.InitiateMonikerStream = channel.unary_unary(
-                '/niPerfTest.MonikerService/InitiateMonikerStream',
-                request_serializer=perftest__pb2.MonikerList.SerializeToString,
-                response_deserializer=perftest__pb2.MonikerStreamId.FromString,
-                )
-        self.StreamReadWrite = channel.stream_stream(
-                '/niPerfTest.MonikerService/StreamReadWrite',
-                request_serializer=perftest__pb2.MonikerWriteRequest.SerializeToString,
-                response_deserializer=perftest__pb2.MonikerReadResult.FromString,
-                )
-        self.StreamRead = channel.unary_stream(
-                '/niPerfTest.MonikerService/StreamRead',
-                request_serializer=perftest__pb2.MonikerStreamId.SerializeToString,
-                response_deserializer=perftest__pb2.MonikerReadResult.FromString,
-                )
-        self.StreamWrite = channel.stream_stream(
-                '/niPerfTest.MonikerService/StreamWrite',
-                request_serializer=perftest__pb2.MonikerWriteRequest.SerializeToString,
-                response_deserializer=perftest__pb2.MonikerStreamId.FromString,
-                )
-
-
-class MonikerServiceServicer(object):
-    """---------------------------------------------------------------------
-    ---------------------------------------------------------------------
-    """
-
-    def InitiateMonikerStream(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def StreamReadWrite(self, request_iterator, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def StreamRead(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def StreamWrite(self, request_iterator, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-
-def add_MonikerServiceServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-            'InitiateMonikerStream': grpc.unary_unary_rpc_method_handler(
-                    servicer.InitiateMonikerStream,
-                    request_deserializer=perftest__pb2.MonikerList.FromString,
-                    response_serializer=perftest__pb2.MonikerStreamId.SerializeToString,
-            ),
-            'StreamReadWrite': grpc.stream_stream_rpc_method_handler(
-                    servicer.StreamReadWrite,
-                    request_deserializer=perftest__pb2.MonikerWriteRequest.FromString,
-                    response_serializer=perftest__pb2.MonikerReadResult.SerializeToString,
-            ),
-            'StreamRead': grpc.unary_stream_rpc_method_handler(
-                    servicer.StreamRead,
-                    request_deserializer=perftest__pb2.MonikerStreamId.FromString,
-                    response_serializer=perftest__pb2.MonikerReadResult.SerializeToString,
-            ),
-            'StreamWrite': grpc.stream_stream_rpc_method_handler(
-                    servicer.StreamWrite,
-                    request_deserializer=perftest__pb2.MonikerWriteRequest.FromString,
-                    response_serializer=perftest__pb2.MonikerStreamId.SerializeToString,
-            ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-            'niPerfTest.MonikerService', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-
-
- # This class is part of an EXPERIMENTAL API.
-class MonikerService(object):
-    """---------------------------------------------------------------------
-    ---------------------------------------------------------------------
-    """
-
-    @staticmethod
-    def InitiateMonikerStream(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/niPerfTest.MonikerService/InitiateMonikerStream',
-            perftest__pb2.MonikerList.SerializeToString,
-            perftest__pb2.MonikerStreamId.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def StreamReadWrite(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.stream_stream(request_iterator, target, '/niPerfTest.MonikerService/StreamReadWrite',
-            perftest__pb2.MonikerWriteRequest.SerializeToString,
-            perftest__pb2.MonikerReadResult.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def StreamRead(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/niPerfTest.MonikerService/StreamRead',
-            perftest__pb2.MonikerStreamId.SerializeToString,
-            perftest__pb2.MonikerReadResult.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def StreamWrite(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.stream_stream(request_iterator, target, '/niPerfTest.MonikerService/StreamWrite',
-            perftest__pb2.MonikerWriteRequest.SerializeToString,
-            perftest__pb2.MonikerStreamId.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
