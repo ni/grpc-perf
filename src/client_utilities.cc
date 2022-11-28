@@ -150,22 +150,25 @@ int NIPerfTestClient::Read(double timeout, int numSamples, double* samples)
 //---------------------------------------------------------------------
 int NIPerfTestClient::ReadComplex(double timeout, int numSamples)
 {
+    google::protobuf::Arena arena;
+
     ReadParameters request;
     request.set_timeout(timeout);
     request.set_num_samples(numSamples);
 
     ClientContext context;
-    ReadComplexResult reply;
-    Status status = m_Stub->ReadComplex(&context, request, &reply);    
+    ReadComplexResult* reply = google::protobuf::Arena::CreateMessage<ReadComplexResult>(&arena);
+
+    Status status = m_Stub->ReadComplex(&context, request, reply);    
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
     }
-    if (reply.samples().size() != numSamples)
+    if (reply->samples().size() != numSamples)
     {
         cout << "ERROR, wrong number of samples";
     }
-    return reply.status();
+    return reply->status();
 }
 
 //---------------------------------------------------------------------

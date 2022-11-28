@@ -14,6 +14,7 @@
 #include <src/core/lib/iomgr/executor.h>
 #include <src/core/lib/iomgr/timer_manager.h>
 #include <thread>
+#include <google/protobuf/arena.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -157,10 +158,10 @@ Status NIPerfTestServer::ReadComplex(ServerContext* context, const niPerfTest::R
 	response->mutable_samples()->Reserve(request->num_samples());
     for (int x=0; x<request->num_samples(); ++x)
     {
-        auto sample = new niPerfTest::ComplexNumber();
+        //auto sample = new niPerfTest::ComplexNumber();
+        auto sample = response->mutable_samples()->Add();
         sample->set_real(3.14);
         sample->set_imaginary(4.56);
-	    response->mutable_samples()->AddAllocated(sample);
     }
 	response->set_status(0);
 	return Status::OK;
@@ -459,6 +460,59 @@ std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void TestNonArena(int numSamples)
+{
+    std::cout << "Testing Non Arena" << std::endl;
+
+    auto start = chrono::high_resolution_clock::now();
+
+    niPerfTest::ReadComplexResult* response = new niPerfTest::ReadComplexResult();
+	response->mutable_samples()->Reserve(numSamples);
+    for (int x=0; x<numSamples; ++x)
+    {
+        auto sample = new niPerfTest::ComplexNumber();
+        sample->set_real(3.14);
+        sample->set_imaginary(4.56);
+	    response->mutable_samples()->AddAllocated(sample);
+    }
+	response->set_status(0);
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+    double us = (double)elapsed.count();
+
+    cout << "Non arena time: " << us << endl;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void TestArena(int numSamples)
+{
+    std::cout << "Testing Non Arena" << std::endl;
+
+    auto start = chrono::high_resolution_clock::now();
+
+    google::protobuf::Arena arena;
+
+    niPerfTest::ReadComplexResult* response =  google::protobuf::Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+	response->mutable_samples()->Reserve(numSamples);
+    for (int x=0; x<numSamples; ++x)
+    {
+        auto sample = response->mutable_samples()->Add();
+        sample->set_real(3.14);
+        sample->set_imaginary(4.56);
+    }
+	response->set_status(0);
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+    double us = (double)elapsed.count();
+
+    cout << "Arena time: " << us << endl;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void RunServer(int argc, char **argv, const char* server_address)
 {
     // Init gRPC
@@ -505,6 +559,13 @@ void InitDetours();
 //---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    TestNonArena(400000);
+    TestArena(400000);
+    TestNonArena(400000);
+    TestArena(400000);
+    TestNonArena(400000);
+    TestArena(400000);
+    
     //InitDetours();
     grpc_init();
     grpc_timer_manager_set_threading(false);

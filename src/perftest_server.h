@@ -31,6 +31,8 @@ using grpc::ServerWriter;
 class NIPerfTestServer final : public niPerfTest::niPerfTestService::Service
 {
 public:
+    bool use_arena_allocator() override { return true; }
+    
     grpc::Status StreamLatencyTest(grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::niPerfTest::StreamLatencyServer, niPerfTest::StreamLatencyClient>* stream) override;
     grpc::Status StreamLatencyTestClient(grpc::ServerContext* context, ::grpc::ServerReader< ::niPerfTest::StreamLatencyClient>* reader, niPerfTest::StreamLatencyServer* response) override;
     grpc::Status StreamLatencyTestServer(grpc::ServerContext* context, const ::niPerfTest::StreamLatencyClient* request, ::grpc::ServerWriter<niPerfTest::StreamLatencyServer>* writer) override;
