@@ -40,7 +40,6 @@ service niPerfTestService {
 message BeginTestSidebandStreamRequest {
   ni.data_monikers.SidebandStrategy strategy = 1;
   int32 num_samples = 2;
-  bool use_fast_memcpy = 3;
 }
 
 message BeginTestSidebandStreamResponse {  

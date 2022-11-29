@@ -394,13 +394,13 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
     cout << "Sockets" << endl;
     // PerformSidebandReadTest(client, 1024 * 1024, SidebandStrategy::SOCKETS, true, "1 MB Buffer");
     // PerformSidebandReadTest(client, 2 * 1024 * 1024, SidebandStrategy::SOCKETS, true, "2 MB Buffer");
-    PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::SOCKETS, true, "4 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::SOCKETS, "4 MB Buffer");
     // PerformSidebandReadTest(client, 8 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "8 MB Buffer");
     // PerformSidebandReadTest(client, 12 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "12 MB Buffer");
     // PerformSidebandReadTest(client, 16 * 1024 * 1024, SidebandStrategy::DOUBLE_BUFFERED_SHARED_MEMORY, true, "16 MB Buffer");
 
     cout << "RDMA" << endl;
-    PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::RDMA, true, "4 MB Buffer");
+    PerformSidebandReadTest(client, 4 * 1024 * 1024, SidebandStrategy::RDMA, "4 MB Buffer");
 
     cout << endl;
     cout << "Done" << endl;

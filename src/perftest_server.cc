@@ -2,7 +2,6 @@
 //---------------------------------------------------------------------
 #include <client_utilities.h>
 #include <sideband_data.h>
-#include <sideband_internal.h>
 #include <sideband_grpc.h>
 #include <performance_tests.h>
 #include <thread>
@@ -211,11 +210,13 @@ Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTe
 //---------------------------------------------------------------------
 Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response)
 {    
-    SetFastMemcpy(request->use_fast_memcpy());
-    auto identifier = InitOwnerSidebandData((::SidebandStrategy)request->strategy(), request->num_samples());
+    char identifier[32] = {};
+    InitOwnerSidebandData((::SidebandStrategy)request->strategy(), request->num_samples(), identifier);
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
-    response->set_connection_url(GetConnectionAddress((::SidebandStrategy)request->strategy()));
+    char address[1024] = {};
+    GetSidebandConnectionAddress((::SidebandStrategy)request->strategy(), address);
+    response->set_connection_url(address);
 
     QueueSidebandConnection((::SidebandStrategy)request->strategy(), identifier, true, true, request->num_samples());
 	return Status::OK;
@@ -234,7 +235,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
         TestSidebandStreamResponse response;
         if (sidebandToken == 0)
         {
-            sidebandToken = GetOwnerSidebandDataToken(request.sideband_identifier());
+            GetOwnerSidebandDataToken(request.sideband_identifier().c_str(), &sidebandToken);
             assert(sidebandToken != 0);
         }
         switch (request.strategy())
@@ -282,7 +283,8 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
 #endif
 
     TestSidebandStreamResponse response;
-    auto sidebandToken = GetOwnerSidebandDataToken(sidebandIdentifier);
+    int64_t sidebandToken = 0;
+    GetOwnerSidebandDataToken(sidebandIdentifier.c_str(), &sidebandToken);
     assert(sidebandToken != 0);
 
     std::cout << "Starting sideband loop" << std::endl;
@@ -316,10 +318,13 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
     auto bufferSize = 1024 * 1024;
     auto strategy = static_cast<::SidebandStrategy>(request->strategy());
 
-    auto identifier = InitOwnerSidebandData(strategy, bufferSize);
+    char identifier[32] = {};
+    InitOwnerSidebandData(strategy, bufferSize, identifier);
+    char address[1024] = {};
+    GetSidebandConnectionAddress((::SidebandStrategy)request->strategy(), address);
     response->set_strategy(request->strategy());
     response->set_sideband_identifier(identifier);
-    response->set_connection_url(GetConnectionAddress(strategy));
+    response->set_connection_url(address);
     response->set_buffer_size(bufferSize);
     QueueSidebandConnection(strategy, identifier, true, true, bufferSize);
 

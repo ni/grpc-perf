@@ -12,8 +12,6 @@ else()
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  set(RDMA_LIB "imports/lib/rdma.lib")
-  SET(LVRT_LIB "")
 endif()
 
 find_package(Threads REQUIRED)
@@ -50,16 +48,10 @@ endif()
 # Define libraries to link
 #----------------------------------------------------------------------
 if(WIN32)
-  link_directories("./imports/lib/win64")
+  link_directories("./third_party/grpc-sideband")
 else()
   # Add grpc-sideband deps here
-  link_directories("./imports/lib/linux")
-endif()
-
-if(NOT MSVC)
-  set(RDMA_LIB "libnirdma.so")
-else()
-  set(RDMA_LIB "rdma.lib")
+  link_directories("./third_party/grpc-sideband/linux")
 endif()
 
 #----------------------------------------------------------------------
@@ -130,8 +122,6 @@ target_link_libraries(perftest_server
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
-  ${RDMA_LIB}
-  ${LVRT_LIB}
   ${DETOURS_LIB}
   )
 
@@ -152,6 +142,4 @@ target_link_libraries(perftest_client
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
-  ${RDMA_LIB}
-  ${LVRT_LIB}
   )

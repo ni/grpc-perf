@@ -184,11 +184,10 @@ void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy, bool fastMemcpy, const std::string& message)
+void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy, const std::string& message)
 {
     cout << "Start Sideband Read Test " << message << endl;
 
-    SetFastMemcpy(fastMemcpy);
     uint8_t* buffer = new uint8_t[numSamples];
     BeginTestSidebandStreamResponse response;
     {
@@ -196,11 +195,11 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_
         BeginTestSidebandStreamRequest request;
         request.set_strategy(strategy);
         request.set_num_samples(numSamples);
-        request.set_use_fast_memcpy(fastMemcpy);
         client.m_Stub->BeginTestSidebandStream(&context, request, &response);
     }
     auto sidebandIdentifier = response.sideband_identifier();
-    auto sidebandToken = InitClientSidebandData(response.connection_url(), (::SidebandStrategy)response.strategy(), response.sideband_identifier(), numSamples);
+    int64_t sidebandToken = 0;
+    InitClientSidebandData(response.connection_url().c_str(), (::SidebandStrategy)response.strategy(), response.sideband_identifier().c_str(), numSamples, &sidebandToken);
     {
         ClientContext context;
         auto stream = client.m_Stub->TestSidebandStream(&context);
