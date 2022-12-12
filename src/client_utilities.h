@@ -46,6 +46,7 @@ public:
     int InitiateAcquisition(std::string vi);
     int Read(double timeout, int numSamples, double* samples);
     int ReadComplex(double timeout, int numSamples);
+    int ReadComplexArena(double timeout, int numSamples);
     int TestWrite(int numSamples, double* samples);
     std::unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> ReadContinuously(grpc::ClientContext* context, double timeout, int numSamples, int numIterations);
 public:

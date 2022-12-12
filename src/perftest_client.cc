@@ -317,11 +317,16 @@ void RunReadTestSuite(NIPerfTestClient& client)
 void RunReadComplexTestSuite(NIPerfTestClient& client)
 {
     cout << "Start Read Complex Test Suite" << endl;
+    PerformReadComplexArenaTest(client, 100, 1000);
+    PerformReadComplexArenaTest(client, 1000, 1000);
+    PerformReadComplexArenaTest(client, 10000, 1000);
+    PerformReadComplexArenaTest(client, 100000, 1000);
+
     PerformReadComplexTest(client, 100, 1000);
     PerformReadComplexTest(client, 1000, 1000);
     PerformReadComplexTest(client, 10000, 1000);
     PerformReadComplexTest(client, 100000, 1000);
-    PerformReadComplexTest(client, 400000, 1000);
+    //PerformReadComplexTest(client, 400000, 1000);
     // PerformReadTest(client, 200000, 10000);
     // PerformReadTest(client, 393216, 10000);
 }
@@ -467,7 +472,7 @@ int main(int argc, char **argv)
     }
 
     // Run desired test suites
-    RunReadTestSuite(*client);
+    //RunReadTestSuite(*client);
     RunReadComplexTestSuite(*client);
     RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);

@@ -16,6 +16,7 @@ void PerformLatencyStreamTest2(NIPerfTestClient& client, NIPerfTestClient& clien
 void PerformMessageLatencyTest(NIPerfTestClient& client, std::string fileName);
 void PerformReadTest(NIPerfTestClient& client, int numSamples, int numIterations);
 void PerformReadComplexTest(NIPerfTestClient& client, int numSamples, int numIterations);
+void PerformReadComplexArenaTest(NIPerfTestClient& client, int numSamples, int numIterations);
 void PerformWriteTest(NIPerfTestClient& client, int numSamples);
 void PerformStreamingTest(NIPerfTestClient& client, int numSamples);
 void PerformTwoStreamTest(NIPerfTestClient& client, NIPerfTestClient& client2, int numSamples);

@@ -28,7 +28,7 @@ using grpc::ServerWriter;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-class NIPerfTestServer final : public niPerfTest::niPerfTestService::Service
+class NIPerfTestServer final : public niPerfTest::niPerfTestService::WithAsyncMethod_ReadComplexArena<niPerfTest::niPerfTestService::Service>
 {
 public:
     grpc::Status StreamLatencyTest(grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::niPerfTest::StreamLatencyServer, niPerfTest::StreamLatencyClient>* stream) override;
@@ -45,6 +45,20 @@ public:
     Status TestWriteContinuously(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestWriteResult, niPerfTest::TestWriteParameters>* stream) override;
     Status BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response) override;
     Status TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandStreamResponse, niPerfTest::TestSidebandStreamRequest>* stream) override;
+};
+
+class ReadComplexAsyncCall
+{
+public:
+    ReadComplexAsyncCall();
+
+    grpc::ServerContext _context;
+    niPerfTest::ReadParameters _request;
+    grpc::ServerAsyncResponseWriter<::niPerfTest::ReadComplexResult> _response;
+
+    void HandleCall(bool ok);
+
+    bool _complete;
 };
 
 //---------------------------------------------------------------------

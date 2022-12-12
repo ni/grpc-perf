@@ -170,6 +170,28 @@ int NIPerfTestClient::ReadComplex(double timeout, int numSamples)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+int NIPerfTestClient::ReadComplexArena(double timeout, int numSamples)
+{
+    ReadParameters request;
+    request.set_timeout(timeout);
+    request.set_num_samples(numSamples);
+
+    ClientContext context;
+    ReadComplexResult reply;
+    Status status = m_Stub->ReadComplexArena(&context, request, &reply);    
+    if (!status.ok())
+    {
+        cout << status.error_code() << ": " << status.error_message() << endl;
+    }
+    if (reply.samples().size() != numSamples)
+    {
+        cout << "ERROR, wrong number of samples";
+    }
+    return reply.status();
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 int NIPerfTestClient::TestWrite(int numSamples, double* samples)
 {   
     TestWriteParameters request;

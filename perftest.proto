@@ -34,6 +34,7 @@ service niPerfTestService {
   rpc InitiateAcquisition(InitiateAcquisitionRequest) returns (InitiateAcquisitionResponse);
   rpc Read(ReadParameters) returns (ReadResult) {};
   rpc ReadComplex(ReadParameters) returns (ReadComplexResult) {};
+  rpc ReadComplexArena(ReadParameters) returns (ReadComplexResult) {};
   rpc ReadContinuously(ReadContinuouslyParameters) returns (stream ReadContinuouslyResult) {};
 }
 

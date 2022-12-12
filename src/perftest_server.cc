@@ -462,6 +462,39 @@ std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv
 	return creds;
 }
 
+ReadComplexAsyncCall::ReadComplexAsyncCall() :
+    _response(&_context)
+{
+    _complete = false;    
+}
+    
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void ReadComplexAsyncCall::HandleCall(bool ok)
+{ 
+    if (!_complete)
+    {
+        Arena arena;
+        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        auto numSamples = _request.num_samples();
+        response->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = response->mutable_samples()->Add();
+            sample->set_real(3.14);
+            sample->set_imaginary(4.56);
+        }
+        response->set_status(0);
+
+        _response.Finish(*response, Status::OK, this);
+        _complete = true;
+    }
+    else
+    {
+        delete this;
+    }
+}
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void RunServer(int argc, char **argv, const char* server_address)
@@ -497,10 +530,29 @@ void RunServer(int argc, char **argv, const char* server_address)
 	builder.RegisterService(&service);
 	builder.RegisterService(&monikerService);
 
+    auto cq = builder.AddCompletionQueue();
+
 	// Assemble the server.
 	auto server = builder.BuildAndStart();
 	_inProcServer = server->InProcessChannel(grpc::ChannelArguments());
 	cout << "Server listening on " << server_address << endl;
+
+    auto nextCall = new ReadComplexAsyncCall();
+    service.RequestReadComplexArena(&nextCall->_context, &nextCall->_request, &nextCall->_response, cq.get(), cq.get(), nextCall);
+    while (true)
+    {
+        bool ok;
+        void* tag = nullptr;
+        cq->Next(&tag, &ok); 
+
+        auto call = reinterpret_cast<ReadComplexAsyncCall*>(tag);
+
+        nextCall = new ReadComplexAsyncCall();
+        service.RequestReadComplexArena(&nextCall->_context, &nextCall->_request, &nextCall->_response, cq.get(), cq.get(), nextCall);
+        
+        call->HandleCall(ok);
+        //delete call;
+    }
 	server->Wait();
 }
 
