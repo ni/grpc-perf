@@ -109,6 +109,7 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
     cout << "Result: " << timePerTest << " us Per iteration" << endl << endl;
 }
 
+#if (ENABLE_GRPC_SIDEBAND)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSamples, ni::data_monikers::SidebandStrategy strategy)
@@ -225,6 +226,7 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_
         stream->Finish();
     }
 }
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
