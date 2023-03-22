@@ -505,6 +505,12 @@ void RunServer(int argc, char **argv, const char* server_address)
     // grpc_core::Executor::SetThreadingDefault(false);
     // grpc_core::Executor::SetThreadingAll(false);
 
+#ifndef _WIN32
+    cpu_set_t cpuSet;
+    CPU_ZERO(&cpuSet);
+    CPU_SET(22, &cpuSet);
+    sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
+#endif
 	auto creds = CreateCredentials(argc, argv);
 
 	NIPerfTestServer service;
