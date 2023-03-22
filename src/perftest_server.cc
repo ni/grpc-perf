@@ -583,7 +583,7 @@ int main(int argc, char **argv)
     CPU_ZERO(&cpuSet);
     CPU_SET(9, &cpuSet);
     //CPU_SET(11, &cpuSet);
-    sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
+    sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
 #else
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
     {
