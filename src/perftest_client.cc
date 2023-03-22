@@ -137,7 +137,7 @@ string GetCertPath(int argc, char** argv)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 string read_keycert( const string& filename)
-{	
+{
 	string data;
 	ifstream file(filename.c_str(), ios::in);
 	if (file.is_open())
@@ -271,7 +271,7 @@ void RunParallelatencyStreamTestSuite(NIPerfTestClient& client)
     PerformLatencyStreamTest2(client, client, 4, "streamlatency4Stream.txt");
     PerformLatencyStreamTest2(client, client, 5, "streamlatency4Stream.txt");
 }
-    
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void RunMessagePerformanceTestSuite(NIPerfTestClient& client)
@@ -279,7 +279,7 @@ void RunMessagePerformanceTestSuite(NIPerfTestClient& client)
     cout << "Start Message Performance Test Suite" << endl;
     PerformMessagePerformanceTest(client);
 }
-    
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void RunSteamingTestSuite(NIPerfTestClient& client)
@@ -416,13 +416,13 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
 int main(int argc, char **argv)
 {
     // Configure gRPC
-    grpc_init();
-    grpc_timer_manager_set_threading(false);
-    ::grpc_core::Executor::SetThreadingDefault(false);
-    ::grpc_core::Executor::SetThreadingAll(false);
+    //grpc_init();
+    //grpc_timer_manager_set_threading(false);
+    //::grpc_core::Executor::SetThreadingDefault(false);
+    //::grpc_core::Executor::SetThreadingAll(false);
 
     // Configure enviornment
-#ifndef _WIN32    
+#ifndef _WIN32
     sched_param schedParam;
     schedParam.sched_priority = 95;
     sched_setscheduler(0, SCHED_FIFO, &schedParam);
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
             cout << "Already in background mode" << endl;
         else
             cout << "Failed change priority: " << dwError << endl;
-   } 
+   }
 #endif
 
     // Get server information and channel credentials
@@ -494,5 +494,5 @@ int main(int argc, char **argv)
     // PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 100000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1000000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
-    return 0;   
+    return 0;
 }
