@@ -227,12 +227,18 @@ Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const n
 //---------------------------------------------------------------------
 Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandStreamResponse, niPerfTest::TestSidebandStreamRequest>* stream)
 {
-    uint8_t* buffer = new uint8_t[16 * 1024 * 1024];
+    uint64_t bufferSize = 1024 * 1024 * 1024; // 1 GB buffer size
+    uint8_t* buffer = new uint8_t[bufferSize];
     TestSidebandStreamRequest request;
     bool firstWrite = true;
     int64_t sidebandToken = 0;
     while (stream->Read(&request))
     {
+        if(request.num_samples() > bufferSize)
+        {
+            std::cout << "Request sample size greater than buffer size. Aborting!" << std::endl;
+            return Status::CANCELLED;
+        }
         TestSidebandStreamResponse response;
         if (sidebandToken == 0)
         {
@@ -264,6 +270,7 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
         }
     }
     CloseSidebandData(sidebandToken);
+    delete []buffer;
     return Status::OK;
 }
 
