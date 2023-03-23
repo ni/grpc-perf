@@ -336,6 +336,8 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
     QueueSidebandConnection(strategy, identifier, true, true, bufferSize);
 
     auto thread = new std::thread(RunSidebandReadWriteLoop, identifier, strategy);
+    sleep(1); // Allow the thread to initialize with the arguments
+
     thread->detach();
 
     return Status::OK;
