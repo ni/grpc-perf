@@ -56,7 +56,7 @@ static std::shared_ptr<grpc::Channel> _inProcServer;
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 grpc::Status NIPerfTestServer::StreamLatencyTestClient(grpc::ServerContext* context, grpc::ServerReader<niPerfTest::StreamLatencyClient>* reader, niPerfTest::StreamLatencyServer* response)
-{	
+{
 	niPerfTest::StreamLatencyClient client;
 	niPerfTest::StreamLatencyServer server;
     uint32_t slot;
@@ -67,7 +67,7 @@ grpc::Status NIPerfTestServer::StreamLatencyTestClient(grpc::ServerContext* cont
         if (first)
         {
             first = false;
-#ifndef _WIN32    
+#ifndef _WIN32
             cpu_set_t cpuSet;
             CPU_ZERO(&cpuSet);
             CPU_SET(slot, &cpuSet);
@@ -115,35 +115,35 @@ Status NIPerfTestServer::StreamLatencyTest(ServerContext* context, grpc::ServerR
 Status NIPerfTestServer::Init(ServerContext* context, const niPerfTest::InitParameters* request, niPerfTest::InitResult* response)
 {
 	response->set_status(request->id());
-	return Status::OK;	
+	return Status::OK;
 }
 
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::ConfigureVertical(grpc::ServerContext* context, const niPerfTest::ConfigureVerticalRequest* request, niPerfTest::ConfigureVerticalResponse* response)
-{    
-	return Status::OK;	
+{
+	return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::ConfigureHorizontalTiming(grpc::ServerContext* context, const niPerfTest::ConfigureHorizontalTimingRequest* request, niPerfTest::ConfigureHorizontalTimingResponse* response)
-{    
-	return Status::OK;	
+{
+	return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::InitiateAcquisition(grpc::ServerContext* context, const niPerfTest::InitiateAcquisitionRequest* request, niPerfTest::InitiateAcquisitionResponse* response)
-{    
-	return Status::OK;	
+{
+	return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::Read(ServerContext* context, const niPerfTest::ReadParameters* request, niPerfTest::ReadResult* response)
-{	
+{
 	response->mutable_samples()->Reserve(request->num_samples());
 	response->mutable_samples()->Resize(request->num_samples(), 8.325793493);
 	response->set_status(0);
@@ -152,7 +152,7 @@ Status NIPerfTestServer::Read(ServerContext* context, const niPerfTest::ReadPara
 
 //---------------------------------------------------------------------
 Status NIPerfTestServer::ReadComplex(ServerContext* context, const niPerfTest::ReadParameters* request, niPerfTest::ReadComplexResult* response)
-{	
+{
 	response->mutable_samples()->Reserve(request->num_samples());
     for (int x=0; x<request->num_samples(); ++x)
     {
@@ -178,7 +178,7 @@ Status NIPerfTestServer::TestWrite(ServerContext* context, const niPerfTest::Tes
 Status NIPerfTestServer::TestWriteContinuously(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestWriteResult, niPerfTest::TestWriteParameters>* stream)
 {
     niPerfTest::TestWriteParameters readParameters;
-    niPerfTest::TestWriteResult response;    
+    niPerfTest::TestWriteResult response;
     response.set_status(0);
     while (stream->Read(&readParameters))
     {
@@ -190,7 +190,7 @@ Status NIPerfTestServer::TestWriteContinuously(ServerContext* context, grpc::Ser
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTest::ReadContinuouslyParameters* request, grpc::ServerWriter<niPerfTest::ReadContinuouslyResult>* writer)
-{			
+{
 	niPerfTest::ReadContinuouslyResult response;
 	response.mutable_wfm()->Reserve(request->num_samples());
 	response.mutable_wfm()->Resize(request->num_samples(), 0.0);
@@ -210,7 +210,7 @@ Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTe
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response)
-{    
+{
     char identifier[32] = {};
     InitOwnerSidebandData((::SidebandStrategy)request->strategy(), request->num_samples(), identifier);
     response->set_strategy(request->strategy());
@@ -339,21 +339,21 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 grpc::Status NIMonikerServer::StreamReadWrite(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::ni::data_monikers::MonikerReadResult, ::ni::data_monikers::MonikerWriteRequest>* stream)
-{    
+{
     return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 grpc::Status NIMonikerServer::StreamRead(::grpc::ServerContext* context, const ::ni::data_monikers::MonikerList* request, ::grpc::ServerWriter< ::ni::data_monikers::MonikerReadResult>* writer)
-{    
+{
     return Status::OK;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 grpc::Status NIMonikerServer::StreamWrite(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::ni::data_monikers::StreamWriteResponse, ::ni::data_monikers::MonikerWriteRequest>* stream)
-{    
+{
     return Status::OK;
 }
 
@@ -384,7 +384,7 @@ string GetServerAddress(int argc, char** argv)
             cout << "The only acceptable argument is --address=" << endl;
         }
     }
-    return target_str;    
+    return target_str;
 }
 
 //---------------------------------------------------------------------
@@ -422,7 +422,7 @@ string GetCertPath(int argc, char** argv)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 std::string read_keycert( const std::string& filename)
-{	
+{
 	std::string data;
 	std::ifstream file(filename.c_str(), std::ios::in);
 	if (file.is_open())
@@ -467,13 +467,13 @@ std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv
 ReadComplexAsyncCall::ReadComplexAsyncCall() :
     _response(&_context)
 {
-    _complete = false;    
+    _complete = false;
 }
-    
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void ReadComplexAsyncCall::HandleCall(bool ok)
-{ 
+{
     if (!_complete)
     {
         Arena arena;
@@ -551,13 +551,13 @@ void RunServer(int argc, char **argv, const char* server_address)
     {
         bool ok;
         void* tag = nullptr;
-        cq->Next(&tag, &ok); 
+        cq->Next(&tag, &ok);
 
         auto call = reinterpret_cast<ReadComplexAsyncCall*>(tag);
 
         nextCall = new ReadComplexAsyncCall();
         service.RequestReadComplexArena(&nextCall->_context, &nextCall->_request, &nextCall->_response, cq.get(), cq.get(), nextCall);
-        
+
         call->HandleCall(ok);
         //delete call;
     }
@@ -576,7 +576,7 @@ int main(int argc, char **argv)
     // grpc_core::Executor::SetThreadingDefault(false);
     // grpc_core::Executor::SetThreadingAll(false);
 
-#ifndef _WIN32    
+#ifndef _WIN32
     sched_param schedParam;
     schedParam.sched_priority = 95;
     sched_setscheduler(0, SCHED_FIFO, &schedParam);
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
     CPU_ZERO(&cpuSet);
     CPU_SET(9, &cpuSet);
     CPU_SET(11, &cpuSet);
-    sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
+    sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
 #else
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
     {
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
             cout << "Already in background mode" << endl;
         else
             cout << "Failed change priority: " << dwError << endl;
-   } 
+   }
 #endif
 
     std::vector<thread*> threads;
@@ -604,7 +604,7 @@ int main(int argc, char **argv)
         auto port = 50051 + x;
         auto portStr = string("0.0.0.0:") + to_string(port);
         ports.push_back(portStr);
-    } 
+    }
     for (auto port: ports)
     {
         auto p = new string(port.c_str());
@@ -677,7 +677,7 @@ int main(int argc, char **argv)
     //     //cout << "Performing streaming test" << endl;
     //     PerformStreamingTest(*client, 100000);
     // }
-    
+
     for (auto t: threads)
     {
         t->join();
