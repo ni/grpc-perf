@@ -206,6 +206,7 @@ Status NIPerfTestServer::ReadContinuously(ServerContext* context, const niPerfTe
 	return Status::OK;
 }
 
+#if ENABLE_GRPC_SIDEBAND
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const niPerfTest::BeginTestSidebandStreamRequest* request, niPerfTest::BeginTestSidebandStreamResponse* response)
@@ -342,6 +343,7 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
 
     return Status::OK;
 }
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -578,10 +580,10 @@ void InitDetours();
 int main(int argc, char **argv)
 {
     //InitDetours();
-    //grpc_init();
-    //grpc_timer_manager_set_threading(false);
-    //grpc_core::Executor::SetThreadingDefault(false);
-    //grpc_core::Executor::SetThreadingAll(false);
+    // grpc_init();
+    // grpc_timer_manager_set_threading(false);
+    // grpc_core::Executor::SetThreadingDefault(false);
+    // grpc_core::Executor::SetThreadingAll(false);
 
 #ifndef _WIN32
     sched_param schedParam;
@@ -591,7 +593,6 @@ int main(int argc, char **argv)
     cpu_set_t cpuSet;
     CPU_ZERO(&cpuSet);
     CPU_SET(9, &cpuSet);
-    //CPU_SET(11, &cpuSet);
     sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
 #else
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
@@ -620,6 +621,7 @@ int main(int argc, char **argv)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
+#if ENABLE_GRPC_SIDEBAND
     auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
     threads.push_back(t);
 
@@ -627,6 +629,7 @@ int main(int argc, char **argv)
     threads.push_back(t2);
     auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
     threads.push_back(t3);
+#endif
 
     // localhost testing
     //{

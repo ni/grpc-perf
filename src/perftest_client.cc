@@ -356,6 +356,7 @@ void RunScpiCompareTestSuite(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+#if ENABLE_GRPC_SIDEBAND
 void RunSidebandDataTestSuite(NIPerfTestClient& client)
 {
     cout << "Start Sideband Data Test Suite" << endl << endl;
@@ -410,16 +411,17 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
     cout << endl;
     cout << "Done" << endl;
 }
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
     // Configure gRPC
-    //grpc_init();
-    //grpc_timer_manager_set_threading(false);
-    //::grpc_core::Executor::SetThreadingDefault(false);
-    //::grpc_core::Executor::SetThreadingAll(false);
+    // grpc_init();
+    // grpc_timer_manager_set_threading(false);
+    // ::grpc_core::Executor::SetThreadingDefault(false);
+    // ::grpc_core::Executor::SetThreadingAll(false);
 
     // Configure enviornment
 #ifndef _WIN32
@@ -430,7 +432,7 @@ int main(int argc, char **argv)
     cpu_set_t cpuSet;
     CPU_ZERO(&cpuSet);
     CPU_SET(4, &cpuSet);
-    //CPU_SET(10, &cpuSet);
+    CPU_SET(10, &cpuSet);
     sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
 #else
     DWORD dwError, dwPriClass;
@@ -473,14 +475,14 @@ int main(int argc, char **argv)
 
     // Run desired test suites
     //RunReadTestSuite(*client);
-    RunReadComplexTestSuite(*client);
-    RunSteamingTestSuite(*client);
+    //RunReadComplexTestSuite(*client);
+    //RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
 
-    //RunMessagePerformanceTestSuite(*client);
-    //RunSteamingTestSuite(*client);
-    //RunLatencyStreamTestSuite(*client);
+    RunMessagePerformanceTestSuite(*client);
+    RunSteamingTestSuite(*client);
+    RunLatencyStreamTestSuite(*client);
     //RunSidebandDataTestSuite(*client);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);

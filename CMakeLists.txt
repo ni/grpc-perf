@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
+option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
+
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--allow-shlib-undefined")
@@ -12,6 +14,10 @@ else()
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+if (INCLUDE_GRPC_SIDEBAND)
+  add_definitions(-DENABLE_GRPC_SIDEBAND)
 endif()
 
 find_package(Threads REQUIRED)
@@ -23,9 +29,11 @@ link_directories(.)
 add_subdirectory(third_party/grpc ${CMAKE_CURRENT_BINARY_DIR}/grpc EXCLUDE_FROM_ALL)
 
 #----------------------------------------------------------------------
-# Include the gRPC's cmake build
+# Include the grpc-sideband cmake build
 #----------------------------------------------------------------------
-add_subdirectory(third_party/grpc-sideband ${CMAKE_CURRENT_BINARY_DIR}/grpc-sideband)
+if (INCLUDE_GRPC_SIDEBAND)
+  add_subdirectory(third_party/grpc-sideband ${CMAKE_CURRENT_BINARY_DIR}/grpc-sideband)
+endif()
 
 #----------------------------------------------------------------------
 # Use the grpc targets directly from this build.
@@ -47,11 +55,13 @@ endif()
 #----------------------------------------------------------------------
 # Define libraries to link
 #----------------------------------------------------------------------
-if(WIN32)
-  link_directories("./third_party/grpc-sideband")
-else()
-  # Add grpc-sideband deps here
-  link_directories("./third_party/grpc-sideband/linux")
+if (INCLUDE_GRPC_SIDEBAND)
+  if(WIN32)
+    link_directories("./third_party/grpc-sideband")
+  else()
+    # Add grpc-sideband deps here
+    link_directories("./third_party/grpc-sideband/linux")
+  endif()
 endif()
 
 #----------------------------------------------------------------------
@@ -117,13 +127,22 @@ add_executable(perftest_server
   ${datamoniker_proto_srcs}
   ${datamoniker_grpc_srcs}
   )
-target_link_libraries(perftest_server
-  ni_grpc_sideband
-  ${_REFLECTION}
-  ${_GRPC_GRPCPP}
-  ${_PROTOBUF_LIBPROTOBUF}
-  ${DETOURS_LIB}
-  )
+if (INCLUDE_GRPC_SIDEBAND)
+  target_link_libraries(perftest_server
+    ni_grpc_sideband
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+else()
+  target_link_libraries(perftest_server
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+endif()
 
 #----------------------------------------------------------------------
 # Example C++ application to talk to the perftest gRPC service
@@ -137,9 +156,17 @@ add_executable(perftest_client
   ${datamoniker_proto_srcs}
   ${datamoniker_grpc_srcs}
   )
-target_link_libraries(perftest_client
-  ni_grpc_sideband
-  ${_REFLECTION}
-  ${_GRPC_GRPCPP}
-  ${_PROTOBUF_LIBPROTOBUF}
-  )
+if (INCLUDE_GRPC_SIDEBAND)
+  target_link_libraries(perftest_client
+    ni_grpc_sideband
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    )
+else()
+  target_link_libraries(perftest_client
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    )
+endif()
