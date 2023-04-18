@@ -8,6 +8,7 @@ namespace PerfTestServer
     {
         public static void Main(string[] args)
         {
+            System.Console.WriteLine("Starting Server");
             CreateHostBuilder(args).Build().Run();
         }
 
