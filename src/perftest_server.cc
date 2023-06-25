@@ -575,11 +575,11 @@ int main(int argc, char **argv)
     schedParam.sched_priority = 95;
     sched_setscheduler(0, SCHED_FIFO, &schedParam);
 
-    cpu_set_t cpuSet;
-    CPU_ZERO(&cpuSet);
-    CPU_SET(9, &cpuSet);
-    CPU_SET(11, &cpuSet);
-    sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
+    // cpu_set_t cpuSet;
+    // CPU_ZERO(&cpuSet);
+    // CPU_SET(9, &cpuSet);
+    // //CPU_SET(11, &cpuSet);
+    // sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
 #else
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
     {
@@ -605,6 +605,12 @@ int main(int argc, char **argv)
         auto t = new std::thread(RunServer, 0, argv, p->c_str());
         threads.push_back(t);
     }
+
+#if ENABLE_UDS_TESTS
+    auto udsT = new std::thread(RunServer, 0, argv, "unix:///tmp/perftest");
+    threads.push_back(udsT);
+#endif
+
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND

@@ -15,6 +15,11 @@
 #include <src/core/lib/iomgr/executor.h>
 #include <src/core/lib/iomgr/timer_manager.h>
 
+#if (ENABLE_FLATBUFFERS)
+#include <perftest_generated.h>
+#include <perftest_lidar_generated.h>
+#endif
+
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -33,11 +38,719 @@ using std::endl;
 using namespace std;
 using namespace niPerfTest;
 using namespace ni::data_monikers;
+using namespace google::protobuf;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 static int LatencyTestIterations = 300000;
 static int DefaultTestIterations = 20000;
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+#if (ENABLE_FLATBUFFERS)
+// void PerformFlatbuffersPackLidarTableTest(int numSamples, int numIterations)
+// {
+//     cout << "Start flatbuffers pack lidar table test: " << numSamples << endl;
+
+//     auto start = chrono::high_resolution_clock::now();
+//     int packSize = 0;
+
+//     for (int i=0; i<numIterations; ++i)
+//     {
+//         flatbuffers::FlatBufferBuilder builder(10 * 1024 * 1024);
+//         std::vector<PerfTest::LidarTableValue> values;
+//         values.reserve(numSamples);
+//         for (int x=0; x<numSamples; ++x)
+//         {
+//             values.emplace_back(PerfTest::LidarTableValue(3.14, 4.56, 5.67, 6.78));
+//         }
+//         auto result = CreateReadLidarTableResultDirect(builder, &values, 1);
+//         builder.Finish(result);
+//         auto size = builder.GetSize();
+//         packSize = size;
+//     }
+
+//     auto end = chrono::high_resolution_clock::now();
+//     auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+
+//     double timePerMessage = elapsed.count() / (numIterations);
+//     cout << "Result: " << "PackSize: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+// }
+#endif
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+#if (ENABLE_FLATBUFFERS)
+void PerformFlatbuffersPackLidarTest(int numSamples, int numIterations)
+{
+    cout << "Start flatbuffers pack lidar test: " << numSamples << endl;
+
+    auto start = chrono::high_resolution_clock::now();
+    int packSize = 0;
+
+    for (int i=0; i<numIterations; ++i)
+    {
+        flatbuffers::FlatBufferBuilder builder(10 * 1024 * 1024);
+        std::vector<PerfTest::LidarValue> values;
+        values.reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            values.emplace_back(PerfTest::LidarValue(3.14, 4.56, 5.67, 6.78));
+        }
+        auto result = CreateReadLidarResultDirect(builder, &values, 1);
+        builder.Finish(result);
+        auto size = builder.GetSize();
+        packSize = size;
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "PackSize: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+}
+#endif
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+#if (ENABLE_FLATBUFFERS)
+void PerformFlatbuffersPackTest(int numSamples, int numIterations)
+{
+    cout << "Start flatbuffers pack test: " << numSamples << endl;
+
+    auto start = chrono::high_resolution_clock::now();
+    int packSize = 0;
+
+    for (int i=0; i<numIterations; ++i)
+    {
+        flatbuffers::FlatBufferBuilder builder(10 * 1024 * 1024);
+        std::vector<PerfTest::ComplexNumber> values;
+        values.reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            values.emplace_back(PerfTest::ComplexNumber(3.14, 4.56));
+        }
+        auto result = CreateReadComplexResultDirect(builder, &values, 1);
+        builder.Finish(result);
+        auto size = builder.GetSize();
+        packSize = size;
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "PackSize: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+}
+#endif
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+#if (ENABLE_FLATBUFFERS)
+void PerformFlatbuffersPackUnpackTest(int numSamples, int numIterations)
+{
+    cout << "Start flatbuffers pack unpack test: " << numSamples << endl;
+
+    auto start = chrono::high_resolution_clock::now();
+    int packSize = 0;
+
+    for (int i=0; i<numIterations; ++i)
+    {
+        flatbuffers::FlatBufferBuilder builder(10 * 1024 * 1024);
+        std::vector<PerfTest::ComplexNumber> values;
+        values.reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            values.emplace_back(PerfTest::ComplexNumber(3.14, 4.56));
+        }
+        auto result = CreateReadComplexResultDirect(builder, &values, 1);
+        builder.Finish(result);
+        auto size = builder.GetSize();
+        packSize = size;
+
+        std::vector<PerfTest::ComplexNumber> parsedValues;
+        values.reserve(numSamples);
+        auto parsedResult = PerfTest::GetReadComplexResult(builder.GetBufferPointer());
+        for(auto it: *(parsedResult->values()))
+        {
+            parsedValues.emplace_back((*it).real(), (*it).imaginary());
+        }
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "PackSize: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+}
+#endif
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+#if (ENABLE_FLATBUFFERS)
+void PerformFlatbuffersPackUnpackLidarTest(int numSamples, int numIterations)
+{
+    cout << "Start flatbuffers pack unpack lidar test: " << numSamples << endl;
+
+    auto start = chrono::high_resolution_clock::now();
+    int packSize = 0;
+
+    for (int i=0; i<numIterations; ++i)
+    {
+        flatbuffers::FlatBufferBuilder builder(10 * 1024 * 1024);
+        std::vector<PerfTest::LidarValue> values;
+        values.reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            values.emplace_back(PerfTest::LidarValue(3.14, 4.56, 5.67, 6.78));
+        }
+        auto result = CreateReadLidarResultDirect(builder, &values, 1);
+        builder.Finish(result);
+        auto size = builder.GetSize();
+        packSize = size;
+
+        std::vector<PerfTest::LidarValue> parsedValues;
+        parsedValues.reserve(numSamples);
+        values.reserve(numSamples);
+        auto parsedResult = PerfTest::GetReadLidarResult(builder.GetBufferPointer());
+        for(auto it: *(parsedResult->values()))
+        {
+            // if (it->x() < 0)
+            // {                
+            //     PerfTest::LidarValue xx((*it).x(), (*it).y(), (*it).z(), (*it).a());
+            //     parsedValues.emplace_back(xx);
+            // }
+        }
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "PackSize: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+}
+#endif
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(5000000);
+    result.resize(5000000);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        response->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = response->mutable_samples()->Add();
+            sample->set_real(3.14);
+            sample->set_imaginary(4.56);
+        }
+        response->set_status(0);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int i=0; i<numIterations; ++i)
+        {
+            for (int x=0; x<numSamples; ++x)
+            {
+                auto sample = response->mutable_samples()->Mutable(x);
+                sample->set_real(3.14);
+                sample->set_imaginary(4.56);
+            }
+            response->set_status(0);
+
+            response->SerializeToString(&result);
+            if (packSize == 0)
+            {
+                packSize = result.length();
+                spaceUsed = arena.SpaceUsed();
+            }
+        }
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+        cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackLidarTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack lidar test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(5000000);
+    result.resize(5000000);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult>(&arena);
+        response->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = response->mutable_samples()->Add();
+            sample->set_x(3.14);
+            sample->set_y(4.56);
+            sample->set_z(5.56);
+            sample->set_a(6.56);
+        }
+        response->set_status(0);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int i=0; i<numIterations; ++i)
+        {
+            for (int x=0; x<numSamples; ++x)
+            {
+                auto sample = response->mutable_samples()->Mutable(x);
+                sample->set_x(3.14);
+                sample->set_y(4.56);
+                sample->set_z(5.56);
+                sample->set_a(6.56);
+            }
+            response->set_status(0);
+
+            response->SerializeToString(&result);
+            if (packSize == 0)
+            {
+                packSize = result.length();
+                spaceUsed = arena.SpaceUsed();
+            }
+        }
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+        double timePerMessage = (double)elapsed.count() / (double)numIterations;
+        cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackUnpackTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack unpack test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(5000000);
+    result.resize(5000000);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        response->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = response->mutable_samples()->Add();
+            sample->set_real(3.14);
+            sample->set_imaginary(4.56);
+        }
+        response->set_status(0);
+
+        auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        parsed->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = parsed->mutable_samples()->Add();
+            sample->set_real(3.14);
+            sample->set_imaginary(4.56);
+        }
+        parsed->set_status(0);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int i=0; i<numIterations; ++i)
+        {
+            for (int x=0; x<numSamples; ++x)
+            {
+                auto sample = response->mutable_samples()->Mutable(x);
+                sample->set_real(3.14);
+                sample->set_imaginary(4.56);
+            }
+            response->set_status(0);
+
+            response->SerializeToString(&result);
+            if (packSize == 0)
+            {
+                packSize = result.length();
+                spaceUsed = arena.SpaceUsed();
+            }
+
+            parsed->ParseFromString(result);
+        }
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+        double timePerMessage = (double)elapsed.count() / (double)numIterations;
+        cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+struct MyData
+{
+    double x;
+    double y;
+    double z;
+    double a;
+};
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackUnpackLidarTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack unpack lidar test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(5000000);
+    result.resize(5000000);
+
+    std::vector<MyData> myResults;
+    myResults.reserve(numSamples);
+    myResults.resize(numSamples);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult>(&arena);
+        response->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = response->mutable_samples()->Add();
+            sample->set_x(3.14);
+            sample->set_y(4.56);
+            sample->set_z(5.56);
+            sample->set_a(6.56);
+        }
+        response->set_status(0);
+
+        auto parsed = Arena::CreateMessage<niPerfTest::ReadLidarResult>(&arena);
+        parsed->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = parsed->mutable_samples()->Add();
+            sample->set_x(3.14);
+            sample->set_y(4.56);
+            sample->set_z(5.56);
+            sample->set_a(6.56);
+        }
+        parsed->set_status(0);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int i=0; i<numIterations; ++i)
+        {
+            for (int x=0; x<numSamples; ++x)
+            {
+                auto sample = response->mutable_samples()->Mutable(x);
+                sample->set_x(3.14);
+                sample->set_y(4.56);
+                sample->set_z(5.56);
+                sample->set_a(6.56);
+            }
+            response->set_status(0);
+
+            response->SerializeToString(&result);
+            if (packSize == 0)
+            {
+                packSize = result.length();
+                spaceUsed = arena.SpaceUsed();
+            }
+
+            parsed->ParseFromString(result);
+            // int z = 0;
+            // for (auto it: parsed->samples())
+            // {
+            //     if (it.x() < 0)
+            //     {
+            //         MyData r; //  = &(myResults.data()[z]);
+            //         r.x = it.x();
+            //         r.y = it.y();
+            //         r.z = it.z();
+            //         r.a = it.a();
+            //         ++z;
+            //     }
+            // }
+        }
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+        double timePerMessage = (double)elapsed.count() / (double)numIterations;
+        cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackVectorsTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack vectors test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(10 * 1024 * 1024);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult2>(&arena);
+        response->mutable_samples()->mutable_real_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_real_values()->Resize(numSamples, 3.14);
+        response->mutable_samples()->mutable_imaginary_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_imaginary_values()->Resize(numSamples, 4.56);
+        response->set_status(0);
+
+    auto start = chrono::high_resolution_clock::now();
+    for (int i=0; i<numIterations; ++i)
+    {
+        for (int x=0; x<numSamples; ++x)
+        {
+            response->mutable_samples()->mutable_real_values()->Set(x, 3.14);
+            response->mutable_samples()->mutable_imaginary_values()->Set(x, 3.45);
+        }
+        response->set_status(0);
+
+        response->SerializeToString(&result);
+        if (packSize == 0)
+        {
+            packSize = result.length();
+            spaceUsed = arena.SpaceUsed();
+        }
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackLidarVectorsTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack lidar vectors test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(5000000);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult2>(&arena);
+        response->mutable_samples()->mutable_x_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_x_values()->Resize(numSamples, 3.14);
+        response->mutable_samples()->mutable_y_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_y_values()->Resize(numSamples, 4.56);
+        response->mutable_samples()->mutable_z_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_z_values()->Resize(numSamples, 4.56);
+        response->mutable_samples()->mutable_a_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_a_values()->Resize(numSamples, 4.56);
+        response->set_status(0);
+
+    auto start = chrono::high_resolution_clock::now();
+    for (int i=0; i<numIterations; ++i)
+    {
+        for (int x=0; x<numSamples; ++x)
+        {
+            response->mutable_samples()->mutable_x_values()->Set(x, 3.14);
+            response->mutable_samples()->mutable_y_values()->Set(x, 3.45);
+            response->mutable_samples()->mutable_z_values()->Set(x, 3.45);
+            response->mutable_samples()->mutable_a_values()->Set(x, 3.45);
+        }
+        response->set_status(0);
+
+        response->SerializeToString(&result);
+        if (packSize == 0)
+        {
+            packSize = result.length();
+            spaceUsed = arena.SpaceUsed();
+        }
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackUnpackVectorsTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack unpack vectors test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(5000000);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult2>(&arena);
+        response->mutable_samples()->mutable_real_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_real_values()->Resize(numSamples, 3.14);
+        response->mutable_samples()->mutable_imaginary_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_imaginary_values()->Resize(numSamples, 4.56);
+        response->set_status(0);
+
+        auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult2>(&arena);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int i=0; i<numIterations; ++i)
+        {
+            for (int x=0; x<numSamples; ++x)
+            {
+                response->mutable_samples()->mutable_real_values()->Set(x, 3.14);
+                response->mutable_samples()->mutable_imaginary_values()->Set(x, 3.45);
+            }
+            response->set_status(0);
+
+            response->SerializeToString(&result);
+            if (packSize == 0)
+            {
+                packSize = result.length();
+                spaceUsed = arena.SpaceUsed();
+            }
+            //auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+            parsed->ParseFromString(result);
+        }
+
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+        double timePerMessage = (double)elapsed.count() / (double)numIterations;
+        cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformArenaPackUnpackLidarVectorsTest(int numSamples, int numIterations)
+{
+    cout << "Start arena pack unpack lidar vectors test: " << numSamples << endl;
+
+    std::string result;
+    result.reserve(10 * 1024 * 1024);
+
+    int initial_block_size = 10 * 1024 * 1024;
+    char* initial_block = new char [initial_block_size];
+
+    int packSize = 0;    
+    int spaceUsed = 0;
+    {
+        Arena arena(initial_block, initial_block_size);
+        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult2>(&arena);
+        response->mutable_samples()->mutable_x_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_x_values()->Resize(numSamples, 3.14);
+        response->mutable_samples()->mutable_y_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_y_values()->Resize(numSamples, 4.56);
+        response->mutable_samples()->mutable_z_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_z_values()->Resize(numSamples, 4.56);
+        response->mutable_samples()->mutable_a_values()->Reserve(numSamples);
+        response->mutable_samples()->mutable_a_values()->Resize(numSamples, 4.56);
+        response->set_status(0);
+
+        auto parsed = Arena::CreateMessage<niPerfTest::ReadLidarResult2>(&arena);
+
+        auto start = chrono::high_resolution_clock::now();
+        for (int i=0; i<numIterations; ++i)
+        {
+            for (int x=0; x<numSamples; ++x)
+            {
+                response->mutable_samples()->mutable_x_values()->Set(x, 3.14);
+                response->mutable_samples()->mutable_y_values()->Set(x, 3.45);
+                response->mutable_samples()->mutable_z_values()->Set(x, 3.45);
+                response->mutable_samples()->mutable_a_values()->Set(x, 3.45);
+            }
+            response->set_status(0);
+
+            response->SerializeToString(&result);
+            if (packSize == 0)
+            {
+                packSize = result.length();
+                spaceUsed = arena.SpaceUsed();
+            }
+            //auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+            parsed->ParseFromString(result);
+        }
+
+        auto end = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+        double timePerMessage = (double)elapsed.count() / (double)numIterations;
+        cout << "Result: " << "Spaced Used: " << spaceUsed << ", Pack Size: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+    }
+    delete [] initial_block;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformPackUnpackTest(int numSamples, int numIterations)
+{
+    cout << "Start pack unpack test: " << numIterations << endl;
+
+    auto start = chrono::high_resolution_clock::now();
+    std::string result;
+    result.reserve(5000000);
+
+    auto packSize = 0;
+    for (int i=0; i<numIterations; ++i)
+    {
+        auto response = new niPerfTest::ReadComplexResult();
+        response->mutable_samples()->Reserve(numSamples);
+        for (int x=0; x<numSamples; ++x)
+        {
+            auto sample = response->mutable_samples()->Add();
+            sample->set_real(3.14);
+            sample->set_imaginary(4.56);
+        }
+        response->set_status(0);
+
+        response->SerializeToString(&result);
+        delete response;
+        packSize = result.length();
+    }
+    auto end = chrono::high_resolution_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
+
+    double timePerMessage = (double)elapsed.count() / (double)numIterations;
+    cout << "Result: " << "PackSize: " << packSize << ", Microseconds per pack: " << timePerMessage << endl << endl;
+}
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

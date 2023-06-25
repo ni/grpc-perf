@@ -1,0 +1,13 @@
+namespace PerfTest;
+
+struct ComplexNumber {
+    real: double;
+    imaginary: double;
+}
+
+table ReadComplexResult {
+    values: [ComplexNumber];
+    status: int32;
+}
+
+root_type ReadComplexResult;

@@ -413,6 +413,58 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
 }
 #endif
 
+void PerformPackingTests()
+{
+#if (ENABLE_FLATBUFFERS)
+    PerformFlatbuffersPackLidarTest(1000, 10000);
+    PerformFlatbuffersPackLidarTest(10000, 10000);
+    PerformFlatbuffersPackLidarTest(1, 5000);
+    PerformFlatbuffersPackLidarTest(10, 5000);
+    PerformFlatbuffersPackLidarTest(100, 5000);
+    PerformFlatbuffersPackLidarTest(1000, 5000);
+    PerformFlatbuffersPackLidarTest(10000, 5000);
+    PerformFlatbuffersPackLidarTest(50000, 5000);
+    PerformFlatbuffersPackLidarTest(100000, 5000);
+
+    PerformFlatbuffersPackUnpackLidarTest(1, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(10, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(100, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(1000, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(10000, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(50000, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(100000, 5000);
+    PerformFlatbuffersPackUnpackLidarTest(200000, 5000);
+
+    PerformFlatbuffersPackUnpackTest(100000, 100);
+    PerformFlatbuffersPackUnpackTest(200000, 100);
+#endif
+    PerformArenaPackLidarVectorsTest(1000, 10000);
+    PerformArenaPackLidarVectorsTest(10000, 10000);
+    PerformArenaPackLidarVectorsTest(100000, 10000);
+
+    PerformArenaPackUnpackLidarVectorsTest(1000, 10000);
+    PerformArenaPackUnpackLidarVectorsTest(10000, 10000);
+    PerformArenaPackUnpackLidarVectorsTest(100000, 100);
+
+    PerformArenaPackLidarTest(1000, 10000);
+    PerformArenaPackLidarTest(10000, 10000);
+    PerformArenaPackLidarTest(1, 5000);
+    PerformArenaPackLidarTest(10, 5000);
+    PerformArenaPackLidarTest(100, 5000);
+    PerformArenaPackLidarTest(1000, 5000);
+    PerformArenaPackLidarTest(10000, 5000);
+    PerformArenaPackLidarTest(100000, 5000);
+
+    PerformArenaPackUnpackLidarTest(1000, 10000);
+    PerformArenaPackUnpackLidarTest(10000, 10000);
+    PerformArenaPackUnpackLidarTest(1, 5000);
+    PerformArenaPackUnpackLidarTest(10, 5000);
+    PerformArenaPackUnpackLidarTest(100, 5000);
+    PerformArenaPackUnpackLidarTest(1000, 5000);
+    PerformArenaPackUnpackLidarTest(10000, 5000);
+    PerformArenaPackUnpackLidarTest(100000, 5000);
+}
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -426,14 +478,14 @@ int main(int argc, char **argv)
     // Configure enviornment
 #ifndef _WIN32    
     sched_param schedParam;
-    schedParam.sched_priority = 95;
+    schedParam.sched_priority = 99;
     sched_setscheduler(0, SCHED_FIFO, &schedParam);
 
-    cpu_set_t cpuSet;
-    CPU_ZERO(&cpuSet);
-    CPU_SET(4, &cpuSet);
-    CPU_SET(10, &cpuSet);
-    sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
+    // cpu_set_t cpuSet;
+    // CPU_ZERO(&cpuSet);
+    // CPU_SET(4, &cpuSet);
+    // //CPU_SET(10, &cpuSet);
+    // sched_setaffinity(0, sizeof(cpu_set_t), &cpuSet);
 #else
     DWORD dwError, dwPriClass;
     if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
@@ -458,6 +510,9 @@ int main(int argc, char **argv)
     args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
     args.SetMaxReceiveMessageSize(10 * 100 * 1024 * 1024);
     args.SetMaxSendMessageSize(10 * 100 * 1024 * 1024);
+#if ENABLE_UDS_TESTS
+    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:///tmp/perftest", creds, args));
+#endif
     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
     auto monikerClient = new MonikerClient(grpc::CreateCustomChannel(target_str + port, creds, args));
 
@@ -472,11 +527,33 @@ int main(int argc, char **argv)
     {
         cout << "Init result: " << result << endl;
     }
+    // Verify the client is working correctly
+#if ENABLE_UDS_TESTS
+    result = udsClient->Init(42);
+    if (result != 42)
+    {
+        cout << "Server UDS communication failure!" << endl;
+        return -1;
+    }
+    else
+    {
+        cout << "Init result: " << result << endl;
+    }
+#endif
 
     // Run desired test suites
-    //RunReadTestSuite(*client);
+#if ENABLE_UDS_TESTS
+    cout << "UDS TESTS" << endl;
+    RunReadTestSuite(*udsClient);
+    RunSteamingTestSuite(*udsClient);
+    RunMessagePerformanceTestSuite(*udsClient);
+    RunLatencyStreamTestSuite(*udsClient);
+#endif
+
+    cout << endl << "TCP TESTS" << endl;
+    RunReadTestSuite(*client);
     //RunReadComplexTestSuite(*client);
-    //RunSteamingTestSuite(*client);
+    RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
 

@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.5.1)
 project(grpc-perf C CXX)
 
 option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
+option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
+option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -18,6 +20,14 @@ endif()
 
 if (INCLUDE_GRPC_SIDEBAND)
   add_definitions(-DENABLE_GRPC_SIDEBAND)
+endif()
+
+if (INCLUDE_FLAATBUFFERS)
+add_definitions(-DENABLE_FLATBUFFERS)
+endif()
+
+if (INCLUDE_UDS_TESTS)
+add_definitions(-DENABLE_UDS_TESTS)
 endif()
 
 find_package(Threads REQUIRED)
@@ -113,7 +123,7 @@ add_custom_command(
 #----------------------------------------------------------------------
 # Include generated *.pb.h files
 #----------------------------------------------------------------------
-include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc" "./third_party/grpc-sideband/src")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc" "./third_party/grpc-sideband/src" "/snap/flatbuffers/current/include")
 
 #----------------------------------------------------------------------
 # perftest gRPC Server

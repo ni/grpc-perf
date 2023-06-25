@@ -1,0 +1,15 @@
+namespace PerfTest;
+
+struct LidarValue {
+    x: double;
+    y: double;
+    z: double;
+    a: double;
+}
+
+table ReadLidarResult {
+    values: [LidarValue];
+    status: int32;
+}
+
+root_type ReadLidarResult;

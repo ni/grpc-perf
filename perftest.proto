@@ -91,9 +91,43 @@ message ComplexNumber {
   double imaginary = 2;
 }
 
+message ComplexNumberArray {
+  repeated double real_values = 1;
+  repeated double imaginary_values = 2;
+}
+
+message LidarValueArray {
+  repeated double x_values = 1;
+  repeated double y_values = 2;
+  repeated double z_values = 3;
+  repeated double a_values = 4;
+}
+
+message ReadLidarResult2 {
+  int32 status = 1;
+  LidarValueArray samples = 2;
+}
+
 message ReadComplexResult {
   int32 status = 1;
   repeated ComplexNumber samples = 2;
+}
+
+message LidarValue {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double a = 4;
+}
+
+message ReadLidarResult {
+  int32 status = 1;
+  repeated LidarValue samples = 2;
+}
+
+message ReadComplexResult2 {
+  int32 status = 1;
+  ComplexNumberArray samples = 2;
 }
 
 message TestWriteParameters {
