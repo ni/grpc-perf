@@ -544,25 +544,23 @@ int main(int argc, char **argv)
     // Run desired test suites
 #if ENABLE_UDS_TESTS
     cout << "UDS TESTS" << endl;
-    RunReadTestSuite(*udsClient);
-    RunSteamingTestSuite(*udsClient);
-    RunMessagePerformanceTestSuite(*udsClient);
-    RunLatencyStreamTestSuite(*udsClient);
+    // RunReadTestSuite(*udsClient);
+    // RunSteamingTestSuite(*udsClient);
+    // RunMessagePerformanceTestSuite(*udsClient);
+    // RunLatencyStreamTestSuite(*udsClient);
 #endif
 
     cout << endl << "TCP TESTS" << endl;
-    RunReadTestSuite(*client);
+    //RunReadTestSuite(*client);
     //RunReadComplexTestSuite(*client);
-    RunSteamingTestSuite(*client);
+    //RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
-
-    RunMessagePerformanceTestSuite(*client);
-    RunSteamingTestSuite(*client);
-    RunLatencyStreamTestSuite(*client);
+    //RunMessagePerformanceTestSuite(*client);
+    //RunLatencyStreamTestSuite(*client);
     //RunSidebandDataTestSuite(*client);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
 
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);

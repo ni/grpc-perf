@@ -269,23 +269,11 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandStrategy strategy)
+void RunSidebandReadWriteLoop(const char* sidebandIdentifier, ::SidebandStrategy strategy)
 {
-#ifndef _WIN32
-    if (strategy == ::SidebandStrategy::RDMA_LOW_LATENCY ||
-        strategy == ::SidebandStrategy::SOCKETS_LOW_LATENCY)
-    {
-        cpu_set_t cpuSet;
-        CPU_ZERO(&cpuSet);
-        CPU_SET(4, &cpuSet);
-        pid_t threadId = syscall(SYS_gettid);
-        sched_setaffinity(threadId, sizeof(cpu_set_t), &cpuSet);
-    }
-#endif
-
     TestSidebandStreamResponse response;
     int64_t sidebandToken = 0;
-    GetOwnerSidebandDataToken(sidebandIdentifier.c_str(), &sidebandToken);
+    GetOwnerSidebandDataToken(sidebandIdentifier, &sidebandToken);
     assert(sidebandToken != 0);
 
     std::cout << "Starting sideband loop" << std::endl;
@@ -309,6 +297,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
         }
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    delete [] sidebandIdentifier;
     CloseSidebandData(sidebandToken);
 }
 
@@ -319,7 +308,7 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
     auto bufferSize = 1024 * 1024;
     auto strategy = static_cast<::SidebandStrategy>(request->strategy());
 
-    char identifier[32] = {};
+    char* identifier = new char[32];
     InitOwnerSidebandData(strategy, bufferSize, identifier);
     char address[1024] = {};
     GetSidebandConnectionAddress((::SidebandStrategy)request->strategy(), address);
@@ -614,13 +603,14 @@ int main(int argc, char **argv)
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND
+    //auto t = new std::thread(RunSidebandSocketsAccept, "172.26.111.174", 50055);
     auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
     threads.push_back(t);
 
-    auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
-    threads.push_back(t2);
-    auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
-    threads.push_back(t3);
+    // auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
+    // threads.push_back(t2);
+    // auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
+    // threads.push_back(t3);
 #endif
 
     // localhost testing
