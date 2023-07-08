@@ -607,10 +607,10 @@ int main(int argc, char **argv)
     auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
     threads.push_back(t);
 
-    // auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
-    // threads.push_back(t2);
-    // auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
-    // threads.push_back(t3);
+    auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
+    threads.push_back(t2);
+    auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
+    threads.push_back(t3);
 #endif
 
     // localhost testing
