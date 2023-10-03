@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+#include <cxxopts.hpp>
 #include <sideband_data.h>
 #include <sideband_grpc.h>
 #include <performance_tests.h>
@@ -348,68 +349,6 @@ grpc::Status NIMonikerServer::StreamWrite(::grpc::ServerContext* context, ::grpc
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-string GetServerAddress(int argc, char** argv)
-{
-    string target_str = "0.0.0.0:50051";
-    string arg_str("--address");
-    if (argc > 1)
-    {
-        string arg_val = argv[1];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                target_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --address=" << endl;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --address=" << endl;
-        }
-    }
-    return target_str;    
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-string GetCertPath(int argc, char** argv)
-{
-    string cert_str;
-    string arg_str("--cert");
-    if (argc > 2)
-    {
-        string arg_val = argv[2];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                cert_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --cert=" << endl;
-                return 0;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --cert=" << endl;
-            return 0;
-        }
-    }
-    return cert_str;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 std::string read_keycert( const std::string& filename)
 {	
 	std::string data;
@@ -426,10 +365,8 @@ std::string read_keycert( const std::string& filename)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv)
+std::shared_ptr<grpc::ServerCredentials> CreateCredentials(const string& certPath)
 {
-	auto certPath = GetCertPath(argc, argv);
-
 	std::shared_ptr<grpc::ServerCredentials> creds;
 	if (!certPath.empty())
 	{
@@ -488,7 +425,7 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunServer(int argc, char **argv, const char* server_address)
+void RunServer(const string& certPath, const char* server_address)
 {
     // Init gRPC
     //grpc_init();
@@ -496,7 +433,7 @@ void RunServer(int argc, char **argv, const char* server_address)
     // grpc_core::Executor::SetThreadingDefault(false);
     // grpc_core::Executor::SetThreadingAll(false);
 
-	auto creds = CreateCredentials(argc, argv);
+	auto creds = CreateCredentials(certPath);
 
 	NIPerfTestServer service;
     NIMonikerServer monikerService;
@@ -553,6 +490,21 @@ void InitDetours();
 //---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    cxxopts::Options options("perftest_server", "gRPC server for testing various aspects of gRPC performance");
+    options.add_options()
+      ("c,cert", "path to the certificate file to be used", cxxopts::value<string>()->default_value(""))
+      ("h,help", "show usage")
+      ;
+
+    auto parse_result = options.parse(argc, argv);
+    if (parse_result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
+
+    string certPath = parse_result["cert"].as<string>();
+
     //InitDetours();
     // grpc_init();
     // grpc_timer_manager_set_threading(false);
@@ -591,12 +543,12 @@ int main(int argc, char **argv)
     for (auto port: ports)
     {
         auto p = new string(port.c_str());
-        auto t = new std::thread(RunServer, 0, argv, p->c_str());
+        auto t = new std::thread(RunServer, certPath, p->c_str());
         threads.push_back(t);
     }
 
 #if ENABLE_UDS_TESTS
-    auto udsT = new std::thread(RunServer, 0, argv, "unix:///tmp/perftest");
+    auto udsT = new std::thread(RunServer, certPath, "unix:///tmp/perftest");
     threads.push_back(udsT);
 #endif
 
