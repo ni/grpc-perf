@@ -467,12 +467,12 @@ int main(int argc, char **argv)
     //RunReadComplexTestSuite(*client);
     //RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);
-    RunParallelStreamTestSuite(channelTarget, creds);
+    //RunParallelStreamTestSuite(channelTarget, creds);
     //RunMessagePerformanceTestSuite(*client);
     //RunLatencyStreamTestSuite(*client);
     //RunSidebandDataTestSuite(*client);
-    //PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    //PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
 
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
