@@ -143,22 +143,14 @@ add_executable(perftest_server
   ${datamoniker_proto_srcs}
   ${datamoniker_grpc_srcs}
   )
-if (INCLUDE_GRPC_SIDEBAND)
-  target_link_libraries(perftest_server
-    ni_grpc_sideband
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF}
-    ${DETOURS_LIB}
-    )
-else()
-  target_link_libraries(perftest_server
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF}
-    ${DETOURS_LIB}
-    )
-endif()
+
+target_link_libraries(perftest_server
+  $<$<BOOL:${INCLUDE_GRPC_SIDEBAND}>:ni_grpc_sideband>
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  ${DETOURS_LIB}
+  )
 
 #----------------------------------------------------------------------
 # Example C++ application to talk to the perftest gRPC service
@@ -172,17 +164,10 @@ add_executable(perftest_client
   ${datamoniker_proto_srcs}
   ${datamoniker_grpc_srcs}
   )
-if (INCLUDE_GRPC_SIDEBAND)
-  target_link_libraries(perftest_client
-    ni_grpc_sideband
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF}
-    )
-else()
-  target_link_libraries(perftest_client
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF}
-    )
-endif()
+
+target_link_libraries(perftest_client
+  $<$<BOOL:${INCLUDE_GRPC_SIDEBAND}>:ni_grpc_sideband>
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  )
