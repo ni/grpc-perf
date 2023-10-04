@@ -123,7 +123,13 @@ add_custom_command(
 #----------------------------------------------------------------------
 # Include generated *.pb.h files
 #----------------------------------------------------------------------
-include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc" "./third_party/grpc-sideband/src" "/snap/flatbuffers/current/include")
+include_directories(
+  "${CMAKE_CURRENT_BINARY_DIR}"
+  "./src"
+  "./third_party/grpc"
+  "./third_party/grpc-sideband/src"
+  "/snap/flatbuffers/current/include"
+  "./third_party/cxxopts/include")
 
 #----------------------------------------------------------------------
 # perftest gRPC Server
