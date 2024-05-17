@@ -551,14 +551,17 @@ int main(int argc, char **argv)
 #endif
 
     cout << endl << "TCP TESTS" << endl;
+    RunMessagePerformanceTestSuite(*client);
+    PerformAsyncInitTest(*client, 2, 10000);
+    PerformAsyncInitTest(*client, 3, 10000);
+    PerformAsyncInitTest(*client, 5, 10000);
+    PerformAsyncInitTest(*client, 10, 10000);
     RunReadTestSuite(*client);
     //RunReadComplexTestSuite(*client);
     RunSteamingTestSuite(*client);
     //RunScpiCompareTestSuite(*client);
     //RunParallelStreamTestSuite(target_str, port, creds);
 
-    RunMessagePerformanceTestSuite(*client);
-    RunSteamingTestSuite(*client);
     RunLatencyStreamTestSuite(*client);
     //RunSidebandDataTestSuite(*client);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);

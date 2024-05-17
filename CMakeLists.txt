@@ -130,6 +130,7 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc" "
 #----------------------------------------------------------------------
 add_executable(perftest_server
   src/perftest_server.cc
+  src/perftest_server_app.cc
   src/client_utilities.cc
   src/performance_tests.cc
   ${perftest_proto_srcs}
@@ -147,6 +148,36 @@ if (INCLUDE_GRPC_SIDEBAND)
     )
 else()
   target_link_libraries(perftest_server
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+endif()
+
+#----------------------------------------------------------------------
+# perftest gRPC Server
+#----------------------------------------------------------------------
+add_executable(local_perf_check
+  src/perftest_server.cc
+  src/localhost_perf_check.cc
+  src/client_utilities.cc
+  src/performance_tests.cc
+  ${perftest_proto_srcs}
+  ${perftest_grpc_srcs}
+  ${datamoniker_proto_srcs}
+  ${datamoniker_grpc_srcs}
+  )
+if (INCLUDE_GRPC_SIDEBAND)
+  target_link_libraries(local_perf_check
+    ni_grpc_sideband
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+else()
+  target_link_libraries(local_perf_check
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
