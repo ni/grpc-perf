@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+#include <cxxopts.hpp>
 #include <client_utilities.h>
 #include <sideband_data.h>
 #include <sideband_grpc.h>
@@ -22,7 +23,7 @@
 #endif
 
 void InitDetours();
-void RunServer(int argc, char **argv, const char* server_address);
+void RunServer(const std::string& certPath, const char* server_address);
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -66,7 +67,7 @@ int main(int argc, char **argv)
     for (auto port: ports)
     {
         auto p = new std::string(port.c_str());
-        auto t = new std::thread(RunServer, 0, argv, p->c_str());
+        auto t = new std::thread(RunServer, std::string(), p->c_str());
         threads.push_back(t);
     }
 

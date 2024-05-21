@@ -1,7 +1,6 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
-#include <cxxopts.hpp>
 #include <sideband_data.h>
 #include <sideband_grpc.h>
 #include <performance_tests.h>

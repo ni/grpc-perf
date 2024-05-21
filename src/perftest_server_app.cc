@@ -4,6 +4,7 @@
 #include <sideband_data.h>
 #include <sideband_grpc.h>
 #include <performance_tests.h>
+#include <cxxopts.hpp>
 #include <thread>
 #include <sstream>
 #include <fstream>
@@ -22,12 +23,25 @@
 #endif
 
 void InitDetours();
-void RunServer(int argc, char **argv, const char* server_address);
+void RunServer(const std::string& certPath, const char* server_address);
 
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    cxxopts::Options options("perftest_server", "gRPC server for testing various aspects of gRPC performance");
+    options.add_options()
+      ("c,cert", "path to the certificate file to be used", cxxopts::value<std::string>()->default_value(""))
+      ("h,help", "show usage")
+      ;
+
+    auto parse_result = options.parse(argc, argv);
+    if (parse_result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
+
+    std::string certPath = parse_result["cert"].as<std::string>();
+
     //InitDetours();
     // grpc_init();
     // grpc_timer_manager_set_threading(false);
@@ -66,18 +80,19 @@ int main(int argc, char **argv)
     for (auto port: ports)
     {
         auto p = new std::string(port.c_str());
-        auto t = new std::thread(RunServer, 0, argv, p->c_str());
+        auto t = new std::thread(RunServer, certPath, p->c_str());
         threads.push_back(t);
     }
 
 #if ENABLE_UDS_TESTS
-    auto udsT = new std::thread(RunServer, 0, argv, "unix:///tmp/perftest");
+    auto udsT = new std::thread(RunServer, certPath, "unix:///tmp/perftest");
     threads.push_back(udsT);
 #endif
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND
+    //auto t = new std::thread(RunSidebandSocketsAccept, "172.26.111.174", 50055);
     auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
     threads.push_back(t);
 
