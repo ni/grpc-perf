@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+#include <cxxopts.hpp>
 #include <sideband_data.h>
 #include <sideband_grpc.h>
 #include <performance_tests.h>
@@ -269,23 +270,11 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandStrategy strategy)
+void RunSidebandReadWriteLoop(const char* sidebandIdentifier, ::SidebandStrategy strategy)
 {
-#ifndef _WIN32
-    if (strategy == ::SidebandStrategy::RDMA_LOW_LATENCY ||
-        strategy == ::SidebandStrategy::SOCKETS_LOW_LATENCY)
-    {
-        cpu_set_t cpuSet;
-        CPU_ZERO(&cpuSet);
-        CPU_SET(4, &cpuSet);
-        pid_t threadId = syscall(SYS_gettid);
-        sched_setaffinity(threadId, sizeof(cpu_set_t), &cpuSet);
-    }
-#endif
-
     TestSidebandStreamResponse response;
     int64_t sidebandToken = 0;
-    GetOwnerSidebandDataToken(sidebandIdentifier.c_str(), &sidebandToken);
+    GetOwnerSidebandDataToken(sidebandIdentifier, &sidebandToken);
     assert(sidebandToken != 0);
 
     std::cout << "Starting sideband loop" << std::endl;
@@ -309,6 +298,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
         }
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    delete [] sidebandIdentifier;
     CloseSidebandData(sidebandToken);
 }
 
@@ -319,7 +309,7 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
     auto bufferSize = 1024 * 1024;
     auto strategy = static_cast<::SidebandStrategy>(request->strategy());
 
-    char identifier[32] = {};
+    char* identifier = new char[32];
     InitOwnerSidebandData(strategy, bufferSize, identifier);
     char address[1024] = {};
     GetSidebandConnectionAddress((::SidebandStrategy)request->strategy(), address);
@@ -359,68 +349,6 @@ grpc::Status NIMonikerServer::StreamWrite(::grpc::ServerContext* context, ::grpc
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-string GetServerAddress(int argc, char** argv)
-{
-    string target_str = "0.0.0.0:50051";
-    string arg_str("--address");
-    if (argc > 1)
-    {
-        string arg_val = argv[1];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                target_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --address=" << endl;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --address=" << endl;
-        }
-    }
-    return target_str;    
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-string GetCertPath(int argc, char** argv)
-{
-    string cert_str;
-    string arg_str("--cert");
-    if (argc > 2)
-    {
-        string arg_val = argv[2];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                cert_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --cert=" << endl;
-                return 0;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --cert=" << endl;
-            return 0;
-        }
-    }
-    return cert_str;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 std::string read_keycert( const std::string& filename)
 {	
 	std::string data;
@@ -437,10 +365,8 @@ std::string read_keycert( const std::string& filename)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv)
+std::shared_ptr<grpc::ServerCredentials> CreateCredentials(const string& certPath)
 {
-	auto certPath = GetCertPath(argc, argv);
-
 	std::shared_ptr<grpc::ServerCredentials> creds;
 	if (!certPath.empty())
 	{
@@ -499,7 +425,7 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunServer(int argc, char **argv, const char* server_address)
+void RunServer(const string& certPath, const char* server_address)
 {
     // Init gRPC
     //grpc_init();
@@ -507,7 +433,7 @@ void RunServer(int argc, char **argv, const char* server_address)
     // grpc_core::Executor::SetThreadingDefault(false);
     // grpc_core::Executor::SetThreadingAll(false);
 
-	auto creds = CreateCredentials(argc, argv);
+	auto creds = CreateCredentials(certPath);
 
 	NIPerfTestServer service;
     NIMonikerServer monikerService;
