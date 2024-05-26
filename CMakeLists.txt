@@ -16,6 +16,7 @@ else()
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  SET(DETOURS_LIB "detours.lib")
 endif()
 
 if (INCLUDE_GRPC_SIDEBAND)
@@ -139,6 +140,7 @@ add_executable(perftest_server
   src/perftest_server_app.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/user_mode_networking.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}
@@ -154,6 +156,37 @@ if (INCLUDE_GRPC_SIDEBAND)
     )
 else()
   target_link_libraries(perftest_server
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+endif()
+
+#----------------------------------------------------------------------
+# perftest gRPC Server
+#----------------------------------------------------------------------
+add_executable(user_mode_networking_test
+  src/perftest_server.cc
+  src/user_mode_networking_test_app.cc
+  src/client_utilities.cc
+  src/performance_tests.cc
+  src/user_mode_networking.cc
+  ${perftest_proto_srcs}
+  ${perftest_grpc_srcs}
+  ${datamoniker_proto_srcs}
+  ${datamoniker_grpc_srcs}
+  )
+if (INCLUDE_GRPC_SIDEBAND)
+  target_link_libraries(user_mode_networking_test
+    ni_grpc_sideband
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+else()
+  target_link_libraries(user_mode_networking_test
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}

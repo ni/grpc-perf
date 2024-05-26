@@ -22,9 +22,6 @@
 #include <sched.h>
 #endif
 
-void InitDetours();
-void RunServer(const std::string& certPath, const char* server_address);
-
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 int main(int argc, char **argv)

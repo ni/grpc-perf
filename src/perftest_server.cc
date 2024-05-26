@@ -55,6 +55,13 @@ static std::shared_ptr<grpc::Channel> _inProcServer;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+std::shared_ptr<grpc::Channel> InProcServer()
+{
+    return _inProcServer;
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 grpc::Status NIPerfTestServer::StreamLatencyTestClient(grpc::ServerContext* context, grpc::ServerReader<niPerfTest::StreamLatencyClient>* reader, niPerfTest::StreamLatencyServer* response)
 {	
 	niPerfTest::StreamLatencyClient client;

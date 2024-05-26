@@ -28,6 +28,12 @@ using grpc::ServerWriter;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+void InitDetours();
+void RunServer(const std::string& certPath, const char* server_address);
+std::shared_ptr<grpc::Channel> InProcServer();
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 class NIPerfTestServer final : public niPerfTest::niPerfTestService::WithAsyncMethod_ReadComplexArena<niPerfTest::niPerfTestService::Service>
 {
 public:

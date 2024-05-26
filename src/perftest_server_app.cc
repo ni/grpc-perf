@@ -22,9 +22,6 @@
 #include <sched.h>
 #endif
 
-void InitDetours();
-void RunServer(const std::string& certPath, const char* server_address);
-
 int main(int argc, char **argv)
 {
     cxxopts::Options options("perftest_server", "gRPC server for testing various aspects of gRPC performance");
@@ -42,7 +39,6 @@ int main(int argc, char **argv)
 
     std::string certPath = parse_result["cert"].as<std::string>();
 
-    //InitDetours();
     // grpc_init();
     // grpc_timer_manager_set_threading(false);
     // grpc_core::Executor::SetThreadingDefault(false);
@@ -102,61 +98,6 @@ int main(int argc, char **argv)
     threads.push_back(t3);
 #endif
 
-    // localhost testing
-    //{
-    //    auto target_str = std::string("localhost");
-    //    auto creds = grpc::InsecureChannelCredentials();
-    //    auto port = ":50051";
-    //    ::grpc::ChannelArguments args;
-    //    args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-    //    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    //    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-
-    //    // inprocess server
-    //    auto client = new NIPerfTestClient(_inProcServer);
-
-    //    auto result = client->Init(42);
-    //    cout << "Init result: " << result << endl;
-    //    result = client->Init(43);
-    //    cout << "Init result: " << result << endl;
-    //    result = client->Init(44);
-    //    cout << "Init result: " << result << endl;
-
-    //    cout << "Start streaming tests" << endl;
-    //    PerformStreamingTest(*client, 100000);
-
-    //    PerformLatencyStreamTest(*client, "streamlatency1.txt");
-    //    cout << "Performing streaming test" << endl;
-    //    PerformStreamingTest(*client, 100000);
-    //}
-
-    // {
-    //     auto target_str = std::string("localhost");
-    //     auto creds = grpc::InsecureChannelCredentials();
-    //     auto port = ":50051";
-    //     ::grpc::ChannelArguments args;
-    //     args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-    //     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    //     // auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-
-    //     // inprocess server
-    //     //auto client = new NIPerfTestClient(_inProcServer);
-
-    //     auto result = client->Init(42);
-    //     cout << "Init result: " << result << endl;
-    //     result = client->Init(43);
-    //     cout << "Init result: " << result << endl;
-    //     result = client->Init(44);
-    //     cout << "Init result: " << result << endl;
-
-    //     cout << "Start streaming tests" << endl;
-    //     PerformStreamingTest(*client, 200000);
-
-    //     //PerformLatencyStreamTest(*client, "streamlatency1.txt");
-    //     //cout << "Performing streaming test" << endl;
-    //     PerformStreamingTest(*client, 100000);
-    // }
-    
     for (auto t: threads)
     {
         t->join();
