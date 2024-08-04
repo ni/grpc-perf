@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
-option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
+option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" ON)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
 option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
 
@@ -123,13 +123,20 @@ add_custom_command(
 #----------------------------------------------------------------------
 # Include generated *.pb.h files
 #----------------------------------------------------------------------
-include_directories("${CMAKE_CURRENT_BINARY_DIR}" "./src" "./third_party/grpc" "./third_party/grpc-sideband/src" "/snap/flatbuffers/current/include")
+include_directories(
+  "${CMAKE_CURRENT_BINARY_DIR}"
+  "./src"
+  "./third_party/grpc"
+  "./third_party/grpc-sideband/src"
+  "/snap/flatbuffers/current/include"
+  "./third_party/cxxopts/include")
 
 #----------------------------------------------------------------------
 # perftest gRPC Server
 #----------------------------------------------------------------------
 add_executable(perftest_server
   src/perftest_server.cc
+  src/perftest_server_app.cc
   src/client_utilities.cc
   src/performance_tests.cc
   ${perftest_proto_srcs}
@@ -147,6 +154,36 @@ if (INCLUDE_GRPC_SIDEBAND)
     )
 else()
   target_link_libraries(perftest_server
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+endif()
+
+#----------------------------------------------------------------------
+# perftest gRPC Server
+#----------------------------------------------------------------------
+add_executable(local_perf_check
+  src/perftest_server.cc
+  src/localhost_perf_check.cc
+  src/client_utilities.cc
+  src/performance_tests.cc
+  ${perftest_proto_srcs}
+  ${perftest_grpc_srcs}
+  ${datamoniker_proto_srcs}
+  ${datamoniker_grpc_srcs}
+  )
+if (INCLUDE_GRPC_SIDEBAND)
+  target_link_libraries(local_perf_check
+    ni_grpc_sideband
+    ${_REFLECTION}
+    ${_GRPC_GRPCPP}
+    ${_PROTOBUF_LIBPROTOBUF}
+    ${DETOURS_LIB}
+    )
+else()
+  target_link_libraries(local_perf_check
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}

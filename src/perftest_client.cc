@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+#include <cxxopts.hpp>
 #include <performance_tests.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
@@ -32,130 +33,25 @@ using namespace niPerfTest;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-string GetServerAddress(int argc, char** argv)
+string read_keycert(const string& filename)
 {
-    string target_str;
-    string arg_str("--target");
-    if (argc > 1)
+    string data;
+    ifstream file(filename.c_str(), ios::in);
+    if (file.is_open())
     {
-        string arg_val = argv[1];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                target_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --target=" << endl;
-                return 0;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --target=" << endl;
-            return 0;
-        }
+        stringstream ss;
+        ss << file.rdbuf();
+        file.close();
+        data = ss.str();
     }
-    else
-    {
-        target_str = "localhost";
-    }
-    return target_str;
+    return data;
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-string GetServerPort(int argc, char** argv)
-{
-    string target_str;
-    string arg_str("--port");
-    if (argc > 2)
-    {
-        string arg_val = argv[2];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                target_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --port=" << endl;
-                return 0;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --port=" << endl;
-            return 0;
-        }
-    }
-    else
-    {
-        target_str = "50051";
-    }
-    return target_str;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-string GetCertPath(int argc, char** argv)
-{
-    string cert_str;
-    string arg_str("--cert");
-    if (argc > 3)
-    {
-        string arg_val = argv[3];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                cert_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --cert=" << endl;
-                return 0;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --cert=" << endl;
-            return 0;
-        }
-    }
-    return cert_str;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-string read_keycert( const string& filename)
-{	
-	string data;
-	ifstream file(filename.c_str(), ios::in);
-	if (file.is_open())
-	{
-		stringstream ss;
-		ss << file.rdbuf();
-		file.close();
-		data = ss.str();
-	}
-	return data;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-shared_ptr<grpc::ChannelCredentials> CreateCredentials(int argc, char **argv)
+shared_ptr<grpc::ChannelCredentials> CreateCredentials(const string &certificatePath)
 {
     shared_ptr<grpc::ChannelCredentials> creds;
-    auto certificatePath = GetCertPath(argc, argv);
     if (!certificatePath.empty())
     {
         string cacert = read_keycert(certificatePath);
@@ -228,7 +124,7 @@ void RunLatencyPayloadWriteStreamTestSuite(NIPerfTestClient& client)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunParallelStreamTest(int numClients, std::string targetStr, std::string& port, std::shared_ptr<grpc::ChannelCredentials> creds)
+void RunParallelStreamTest(int numClients, const string& channelTarget, std::shared_ptr<grpc::ChannelCredentials> creds)
 {
     cout << "Start Parallel Stream Test Suite" << endl;
     std::vector<NIPerfTestClient*> clients;
@@ -239,7 +135,7 @@ void RunParallelStreamTest(int numClients, std::string targetStr, std::string& p
         grpc::ChannelArguments args;
         args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
         args.SetInt("ClientIndex", x);
-        auto client = new NIPerfTestClient(grpc::CreateCustomChannel(targetStr + port, creds, args));
+        auto client = new NIPerfTestClient(grpc::CreateCustomChannel(channelTarget, creds, args));
         clients.push_back(client);
     }
     cout << endl << "Start " << numClients << " streaming tests" << endl;
@@ -252,12 +148,12 @@ void RunParallelStreamTest(int numClients, std::string targetStr, std::string& p
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunParallelStreamTestSuite(std::string targetStr, std::string& port, std::shared_ptr<grpc::ChannelCredentials> creds)
+void RunParallelStreamTestSuite(const string& channelTarget, std::shared_ptr<grpc::ChannelCredentials> creds)
 {
-    RunParallelStreamTest(2, targetStr, port, creds);
-    RunParallelStreamTest(4, targetStr, port, creds);
-    RunParallelStreamTest(8, targetStr, port, creds);
-    RunParallelStreamTest(16, targetStr, port, creds);
+    RunParallelStreamTest(2, channelTarget, creds);
+    RunParallelStreamTest(4, channelTarget, creds);
+    RunParallelStreamTest(8, channelTarget, creds);
+    RunParallelStreamTest(16, channelTarget, creds);
 }
 
 //---------------------------------------------------------------------
@@ -469,6 +365,25 @@ void PerformPackingTests()
 //---------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    cxxopts::Options options("perftest_client", "gRPC client for testing various aspects of gRPC performance");
+    options.add_options()
+      ("c,cert", "path to the certificate file to be used", cxxopts::value<string>()->default_value(""))
+      ("t,target", "target address of the desired server server", cxxopts::value<string>()->default_value("localhost"))
+      ("p,port", "port to connect to on the target", cxxopts::value<int>()->default_value("50051"))
+      ("h,help", "show usage")
+      ;
+
+    auto parse_result = options.parse(argc, argv);
+    if (parse_result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
+
+    string cert_path = parse_result["cert"].as<string>();
+    string target = parse_result["target"].as<string>();
+    int port = parse_result["port"].as<int>();
+
     // Configure gRPC
     // grpc_init();
     // grpc_timer_manager_set_threading(false);
@@ -498,12 +413,8 @@ int main(int argc, char **argv)
    } 
 #endif
 
-    // Get server information and channel credentials
-    auto target_str = GetServerAddress(argc, argv);
-    auto creds = CreateCredentials(argc, argv);
-    std::string port = ":" + GetServerPort(argc, argv);
-
-    cout << "Target: " << target_str << " Port: " << port << endl;
+    auto creds = CreateCredentials(cert_path);
+    cout << "Target: " << target << " Port: " << port << endl;
 
     // Create the connection to the server
     grpc::ChannelArguments args;
@@ -513,8 +424,9 @@ int main(int argc, char **argv)
 #if ENABLE_UDS_TESTS
     auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:///tmp/perftest", creds, args));
 #endif
-    auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    auto monikerClient = new MonikerClient(grpc::CreateCustomChannel(target_str + port, creds, args));
+    string channelTarget = target + ":" + to_string(port);
+    auto client = new NIPerfTestClient(grpc::CreateCustomChannel(channelTarget, creds, args));
+    auto monikerClient = new MonikerClient(grpc::CreateCustomChannel(channelTarget, creds, args));
 
     // Verify the client is working correctly
     auto result = client->Init(42);
@@ -544,30 +456,31 @@ int main(int argc, char **argv)
     // Run desired test suites
 #if ENABLE_UDS_TESTS
     cout << "UDS TESTS" << endl;
-    RunReadTestSuite(*udsClient);
-    RunSteamingTestSuite(*udsClient);
-    RunMessagePerformanceTestSuite(*udsClient);
-    RunLatencyStreamTestSuite(*udsClient);
+    // RunReadTestSuite(*udsClient);
+    // RunSteamingTestSuite(*udsClient);
+    // RunMessagePerformanceTestSuite(*udsClient);
+    // RunLatencyStreamTestSuite(*udsClient);
 #endif
 
     cout << endl << "TCP TESTS" << endl;
-    RunReadTestSuite(*client);
-    //RunReadComplexTestSuite(*client);
-    RunSteamingTestSuite(*client);
-    //RunScpiCompareTestSuite(*client);
-    //RunParallelStreamTestSuite(target_str, port, creds);
-
     RunMessagePerformanceTestSuite(*client);
-    RunSteamingTestSuite(*client);
+    PerformAsyncInitTest(*client, 2, 10000);
+    PerformAsyncInitTest(*client, 3, 10000);
+    PerformAsyncInitTest(*client, 5, 10000);
+    PerformAsyncInitTest(*client, 10, 10000);
+    RunReadTestSuite(*client);
+    // RunReadTestSuite(*client);
+    // RunReadComplexTestSuite(*client);
+    // RunSteamingTestSuite(*client);
+    // RunScpiCompareTestSuite(*client);
     RunLatencyStreamTestSuite(*client);
-    //RunSidebandDataTestSuite(*client);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS);
-
+    // RunParallelStreamTestSuite(channelTarget, creds);
+    // RunSidebandDataTestSuite(*client);
+    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
-
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);

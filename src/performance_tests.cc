@@ -869,8 +869,8 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
         WriteSidebandMessage(sidebandToken, sidebandRequest);
         ReadSidebandMessage(sidebandToken, &sidebandResponse);
     }
-    
-    for (int x=0; x<1000; ++x)
+
+    for (int x=0; x<100; ++x)
     {
         auto start = chrono::high_resolution_clock::now();
         WriteSidebandMessage(sidebandToken, sidebandRequest);
@@ -882,7 +882,7 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
     }
     sidebandRequest.set_cancel(true);
     WriteSidebandMessage(sidebandToken, sidebandRequest);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     CloseSidebandData(sidebandToken);
     WriteLatencyData(times, "SidebandLatency.txt");
     std::cout << endl;

@@ -269,23 +269,11 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandStrategy strategy)
+void RunSidebandReadWriteLoop(const char* sidebandIdentifier, ::SidebandStrategy strategy)
 {
-#ifndef _WIN32
-    if (strategy == ::SidebandStrategy::RDMA_LOW_LATENCY ||
-        strategy == ::SidebandStrategy::SOCKETS_LOW_LATENCY)
-    {
-        cpu_set_t cpuSet;
-        CPU_ZERO(&cpuSet);
-        CPU_SET(4, &cpuSet);
-        pid_t threadId = syscall(SYS_gettid);
-        sched_setaffinity(threadId, sizeof(cpu_set_t), &cpuSet);
-    }
-#endif
-
     TestSidebandStreamResponse response;
     int64_t sidebandToken = 0;
-    GetOwnerSidebandDataToken(sidebandIdentifier.c_str(), &sidebandToken);
+    GetOwnerSidebandDataToken(sidebandIdentifier, &sidebandToken);
     assert(sidebandToken != 0);
 
     std::cout << "Starting sideband loop" << std::endl;
@@ -309,6 +297,7 @@ void RunSidebandReadWriteLoop(const std::string& sidebandIdentifier, ::SidebandS
         }
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    delete [] sidebandIdentifier;
     CloseSidebandData(sidebandToken);
 }
 
@@ -319,7 +308,7 @@ grpc::Status NIMonikerServer::BeginSidebandStream(::grpc::ServerContext* context
     auto bufferSize = 1024 * 1024;
     auto strategy = static_cast<::SidebandStrategy>(request->strategy());
 
-    char identifier[32] = {};
+    char* identifier = new char[32];
     InitOwnerSidebandData(strategy, bufferSize, identifier);
     char address[1024] = {};
     GetSidebandConnectionAddress((::SidebandStrategy)request->strategy(), address);
@@ -359,68 +348,6 @@ grpc::Status NIMonikerServer::StreamWrite(::grpc::ServerContext* context, ::grpc
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-string GetServerAddress(int argc, char** argv)
-{
-    string target_str = "0.0.0.0:50051";
-    string arg_str("--address");
-    if (argc > 1)
-    {
-        string arg_val = argv[1];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                target_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --address=" << endl;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --address=" << endl;
-        }
-    }
-    return target_str;    
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-string GetCertPath(int argc, char** argv)
-{
-    string cert_str;
-    string arg_str("--cert");
-    if (argc > 2)
-    {
-        string arg_val = argv[2];
-        size_t start_pos = arg_val.find(arg_str);
-        if (start_pos != string::npos)
-        {
-            start_pos += arg_str.size();
-            if (arg_val[start_pos] == '=')
-            {
-                cert_str = arg_val.substr(start_pos + 1);
-            }
-            else
-            {
-                cout << "The only correct argument syntax is --cert=" << endl;
-                return 0;
-            }
-        }
-        else
-        {
-            cout << "The only acceptable argument is --cert=" << endl;
-            return 0;
-        }
-    }
-    return cert_str;
-}
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 std::string read_keycert( const std::string& filename)
 {	
 	std::string data;
@@ -437,10 +364,8 @@ std::string read_keycert( const std::string& filename)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-std::shared_ptr<grpc::ServerCredentials> CreateCredentials(int argc, char **argv)
+std::shared_ptr<grpc::ServerCredentials> CreateCredentials(const string& certPath)
 {
-	auto certPath = GetCertPath(argc, argv);
-
 	std::shared_ptr<grpc::ServerCredentials> creds;
 	if (!certPath.empty())
 	{
@@ -499,7 +424,7 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunServer(int argc, char **argv, const char* server_address)
+void RunServer(const string& certPath, const char* server_address)
 {
     // Init gRPC
     //grpc_init();
@@ -507,7 +432,7 @@ void RunServer(int argc, char **argv, const char* server_address)
     // grpc_core::Executor::SetThreadingDefault(false);
     // grpc_core::Executor::SetThreadingAll(false);
 
-	auto creds = CreateCredentials(argc, argv);
+	auto creds = CreateCredentials(certPath);
 
 	NIPerfTestServer service;
     NIMonikerServer monikerService;
@@ -556,131 +481,4 @@ void RunServer(int argc, char **argv, const char* server_address)
         //delete call;
     }
 	server->Wait();
-}
-
-void InitDetours();
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
-int main(int argc, char **argv)
-{
-    //InitDetours();
-    // grpc_init();
-    // grpc_timer_manager_set_threading(false);
-    // grpc_core::Executor::SetThreadingDefault(false);
-    // grpc_core::Executor::SetThreadingAll(false);
-
-#ifndef _WIN32    
-    sched_param schedParam;
-    schedParam.sched_priority = 95;
-    sched_setscheduler(0, SCHED_FIFO, &schedParam);
-
-    // cpu_set_t cpuSet;
-    // CPU_ZERO(&cpuSet);
-    // CPU_SET(9, &cpuSet);
-    // //CPU_SET(11, &cpuSet);
-    // sched_setaffinity(1, sizeof(cpu_set_t), &cpuSet);
-#else
-    if(!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
-    {
-        auto dwError = GetLastError();
-        if( ERROR_PROCESS_MODE_ALREADY_BACKGROUND == dwError)
-            cout << "Already in background mode" << endl;
-        else
-            cout << "Failed change priority: " << dwError << endl;
-   } 
-#endif
-
-    std::vector<thread*> threads;
-    std::vector<string> ports;
-    for (int x=0; x<1; ++x)
-    {
-        auto port = 50051 + x;
-        auto portStr = string("0.0.0.0:") + to_string(port);
-        ports.push_back(portStr);
-    } 
-    for (auto port: ports)
-    {
-        auto p = new string(port.c_str());
-        auto t = new std::thread(RunServer, 0, argv, p->c_str());
-        threads.push_back(t);
-    }
-
-#if ENABLE_UDS_TESTS
-    auto udsT = new std::thread(RunServer, 0, argv, "unix:///tmp/perftest");
-    threads.push_back(udsT);
-#endif
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-#if ENABLE_GRPC_SIDEBAND
-    auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
-    threads.push_back(t);
-
-    auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
-    threads.push_back(t2);
-    auto t3 = new std::thread(AcceptSidebandRdmaSendRequests);
-    threads.push_back(t3);
-#endif
-
-    // localhost testing
-    //{
-    //    auto target_str = std::string("localhost");
-    //    auto creds = grpc::InsecureChannelCredentials();
-    //    auto port = ":50051";
-    //    ::grpc::ChannelArguments args;
-    //    args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-    //    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    //    //auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-
-    //    // inprocess server
-    //    auto client = new NIPerfTestClient(_inProcServer);
-
-    //    auto result = client->Init(42);
-    //    cout << "Init result: " << result << endl;
-    //    result = client->Init(43);
-    //    cout << "Init result: " << result << endl;
-    //    result = client->Init(44);
-    //    cout << "Init result: " << result << endl;
-
-    //    cout << "Start streaming tests" << endl;
-    //    PerformStreamingTest(*client, 100000);
-
-    //    PerformLatencyStreamTest(*client, "streamlatency1.txt");
-    //    cout << "Performing streaming test" << endl;
-    //    PerformStreamingTest(*client, 100000);
-    //}
-
-    // {
-    //     auto target_str = std::string("localhost");
-    //     auto creds = grpc::InsecureChannelCredentials();
-    //     auto port = ":50051";
-    //     ::grpc::ChannelArguments args;
-    //     args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-    //     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-    //     // auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
-
-    //     // inprocess server
-    //     //auto client = new NIPerfTestClient(_inProcServer);
-
-    //     auto result = client->Init(42);
-    //     cout << "Init result: " << result << endl;
-    //     result = client->Init(43);
-    //     cout << "Init result: " << result << endl;
-    //     result = client->Init(44);
-    //     cout << "Init result: " << result << endl;
-
-    //     cout << "Start streaming tests" << endl;
-    //     PerformStreamingTest(*client, 200000);
-
-    //     //PerformLatencyStreamTest(*client, "streamlatency1.txt");
-    //     //cout << "Performing streaming test" << endl;
-    //     PerformStreamingTest(*client, 100000);
-    // }
-    
-    for (auto t: threads)
-    {
-        t->join();
-    }
-	return 0;
 }
