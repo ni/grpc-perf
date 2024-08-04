@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33414.496
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerfTestServer", "PerfTestServer\PerfTestServer.csproj", "{588AF559-7821-4046-8699-2FCF01FDD9B3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerfTestClient", "PerfTestClient\PerfTestClient.csproj", "{ED7642BA-020B-464F-B50F-44D0815416FF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{588AF559-7821-4046-8699-2FCF01FDD9B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{588AF559-7821-4046-8699-2FCF01FDD9B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{588AF559-7821-4046-8699-2FCF01FDD9B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{588AF559-7821-4046-8699-2FCF01FDD9B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED7642BA-020B-464F-B50F-44D0815416FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED7642BA-020B-464F-B50F-44D0815416FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED7642BA-020B-464F-B50F-44D0815416FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED7642BA-020B-464F-B50F-44D0815416FF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {45B868B7-8E58-4DF1-B2AB-C17622C4D9BE}
+	EndGlobalSection
+EndGlobal
