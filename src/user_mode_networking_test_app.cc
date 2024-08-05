@@ -75,6 +75,7 @@ int main(int argc, char **argv)
             std::cout << "Init result: " << result << std::endl;
 
             PerformMessagePerformanceTest(*client);
+            PerformLatencyStreamTest(*client, "inprocessperf.txt");
         }
 
         {
@@ -93,6 +94,7 @@ int main(int argc, char **argv)
             std::cout << "Init result: " << result << std::endl;
 
             PerformMessagePerformanceTest(*client);
+            PerformLatencyStreamTest(*client, "usermodeperf.txt");
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }

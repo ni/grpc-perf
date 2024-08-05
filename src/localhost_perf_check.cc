@@ -98,6 +98,7 @@ int main(int argc, char **argv)
         while (true)
         {
             PerformMessagePerformanceTest(*client);
+            PerformLatencyStreamTest(*client, "localhostperf.txt");
             PerformAsyncInitTest(*client, 10, 10000);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
