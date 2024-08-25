@@ -4,9 +4,21 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
-option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" ON)
+option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
-option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
+option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" ON)
+
+include(FetchContent)
+
+FetchContent_Declare(
+  gRPC
+  GIT_REPOSITORY https://github.com/grpc/grpc
+  GIT_TAG        v1.66.0
+)
+set(FETCHCONTENT_QUIET OFF)
+set(protobuf_INSTALL OFF)
+set(utf8_range_ENABLE_INSTALL OFF)
+FetchContent_MakeAvailable(gRPC)
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -34,11 +46,6 @@ find_package(Threads REQUIRED)
 link_directories(.)
 
 #----------------------------------------------------------------------
-# Include the gRPC's cmake build
-#----------------------------------------------------------------------
-add_subdirectory(third_party/grpc ${CMAKE_CURRENT_BINARY_DIR}/grpc EXCLUDE_FROM_ALL)
-
-#----------------------------------------------------------------------
 # Include the grpc-sideband cmake build
 #----------------------------------------------------------------------
 if (INCLUDE_GRPC_SIDEBAND)
@@ -50,17 +57,9 @@ endif()
 #----------------------------------------------------------------------
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 set(_REFLECTION grpc++_reflection)
-if(CMAKE_CROSSCOMPILING)
-  find_program(_PROTOBUF_PROTOC protoc)
-else()
-  set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
-endif()
+set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
 set(_GRPC_GRPCPP grpc++)
-if(CMAKE_CROSSCOMPILING)
-  find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
-else()
-  set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
-endif()
+set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
 
 #----------------------------------------------------------------------
 # Define libraries to link

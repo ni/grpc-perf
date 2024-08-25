@@ -11,8 +11,6 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
-#include <src/core/lib/iomgr/executor.h>
-#include <src/core/lib/iomgr/timer_manager.h>
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------

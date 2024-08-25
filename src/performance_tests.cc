@@ -12,8 +12,6 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
-#include <src/core/lib/iomgr/executor.h>
-#include <src/core/lib/iomgr/timer_manager.h>
 
 #if (ENABLE_FLATBUFFERS)
 #include <perftest_generated.h>

@@ -11,8 +11,6 @@
 #include <iostream>
 #include <perftest_server.h>
 #include <perftest.grpc.pb.h>
-#include <src/core/lib/iomgr/executor.h>
-#include <src/core/lib/iomgr/timer_manager.h>
 #include <thread>
 
 #ifndef _WIN32
@@ -72,7 +70,7 @@ int main(int argc, char **argv)
     }
 
 #if ENABLE_UDS_TESTS
-    auto udsT = new std::thread(RunServer, 0, argv, "unix:///tmp/perftest");
+    auto udsT = new std::thread(RunServer, std::string(), "unix:perftest");
     threads.push_back(udsT);
 #endif
 
@@ -89,19 +87,27 @@ int main(int argc, char **argv)
 #endif
 
     {
-        auto target_str = std::string("localhost");
         auto creds = grpc::InsecureChannelCredentials();
-        auto port = ":50051";
         ::grpc::ChannelArguments args;
         args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-        auto client = new NIPerfTestClient(grpc::CreateCustomChannel(target_str + port, creds, args));
+        auto client = new NIPerfTestClient(grpc::CreateCustomChannel("localhost:50051", creds, args));
+        auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:perftest", creds, args));
+
         auto result = client->Init(42);
         std::cout << "Init result: " << result << std::endl;
 
         while (true)
         {
+            std::cout << "TCP Test" << std::endl;
             PerformMessagePerformanceTest(*client);
+            PerformLatencyStreamTest(*client, "streamlatency.txt");
             PerformAsyncInitTest(*client, 10, 10000);
+#if ENABLE_UDS_TESTS
+            std::cout << "UDS Test" << std::endl;
+            PerformMessagePerformanceTest(*udsClient);
+            PerformLatencyStreamTest(*udsClient, "udsstreamlatency.txt");
+            PerformAsyncInitTest(*udsClient, 10, 10000);
+#endif
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }

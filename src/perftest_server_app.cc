@@ -11,8 +11,6 @@
 #include <iostream>
 #include <perftest_server.h>
 #include <perftest.grpc.pb.h>
-#include <src/core/lib/iomgr/executor.h>
-#include <src/core/lib/iomgr/timer_manager.h>
 #include <thread>
 
 #ifndef _WIN32
