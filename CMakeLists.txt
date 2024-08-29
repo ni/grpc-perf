@@ -6,7 +6,7 @@ project(grpc-perf C CXX)
 
 option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
-option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" ON)
+option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
 
 include(FetchContent)
 

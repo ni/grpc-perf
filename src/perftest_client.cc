@@ -420,7 +420,12 @@ int main(int argc, char **argv)
     args.SetMaxReceiveMessageSize(10 * 100 * 1024 * 1024);
     args.SetMaxSendMessageSize(10 * 100 * 1024 * 1024);
 #if ENABLE_UDS_TESTS
-    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:///tmp/perftest", creds, args));
+#ifndef _WIN32    
+    auto udsChannelString = "unix:///tmp/perftest";
+#else
+    auto udsChannelString = "unix:perftest";
+#endif
+    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel(udsChannelString, creds, args));
 #endif
     string channelTarget = target + ":" + to_string(port);
     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(channelTarget, creds, args));
@@ -456,17 +461,17 @@ int main(int argc, char **argv)
     cout << "UDS TESTS" << endl;
     // RunReadTestSuite(*udsClient);
     // RunSteamingTestSuite(*udsClient);
-    // RunMessagePerformanceTestSuite(*udsClient);
-    // RunLatencyStreamTestSuite(*udsClient);
+    RunMessagePerformanceTestSuite(*udsClient);
+    RunLatencyStreamTestSuite(*udsClient);
 #endif
 
     cout << endl << "TCP TESTS" << endl;
     RunMessagePerformanceTestSuite(*client);
-    PerformAsyncInitTest(*client, 2, 10000);
-    PerformAsyncInitTest(*client, 3, 10000);
-    PerformAsyncInitTest(*client, 5, 10000);
-    PerformAsyncInitTest(*client, 10, 10000);
-    RunReadTestSuite(*client);
+    // PerformAsyncInitTest(*client, 2, 10000);
+    // PerformAsyncInitTest(*client, 3, 10000);
+    // PerformAsyncInitTest(*client, 5, 10000);
+    // PerformAsyncInitTest(*client, 10, 10000);
+    // RunReadTestSuite(*client);
     // RunReadTestSuite(*client);
     // RunReadComplexTestSuite(*client);
     // RunSteamingTestSuite(*client);

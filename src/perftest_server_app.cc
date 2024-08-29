@@ -83,7 +83,12 @@ int main(int argc, char **argv)
     }
 
 #if ENABLE_UDS_TESTS
-    auto udsT = new std::thread(RunServer, certPath, "unix:///tmp/perftest");
+#ifndef _WIN32    
+    auto udsChannelString = "unix:///tmp/perftest";
+#else
+    auto udsChannelString = "unix:perftest";
+#endif
+    auto udsT = new std::thread(RunServer, certPath, udsChannelString);
     threads.push_back(udsT);
 #endif
 

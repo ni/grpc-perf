@@ -101,12 +101,12 @@ int main(int argc, char **argv)
             std::cout << "TCP Test" << std::endl;
             PerformMessagePerformanceTest(*client);
             PerformLatencyStreamTest(*client, "streamlatency.txt");
-            PerformAsyncInitTest(*client, 10, 10000);
+            //PerformAsyncInitTest(*client, 10, 10000);
 #if ENABLE_UDS_TESTS
             std::cout << "UDS Test" << std::endl;
             PerformMessagePerformanceTest(*udsClient);
             PerformLatencyStreamTest(*udsClient, "udsstreamlatency.txt");
-            PerformAsyncInitTest(*udsClient, 10, 10000);
+            //PerformAsyncInitTest(*udsClient, 10, 10000);
 #endif
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
