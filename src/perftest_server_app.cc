@@ -22,6 +22,7 @@
 
 void InitDetours();
 void RunServer(const std::string& certPath, const char* server_address);
+void RunSharedMemoryListener();
 
 int main(int argc, char **argv)
 {
@@ -67,11 +68,13 @@ int main(int argc, char **argv)
    } 
 #endif
 
+    std::cout << "Start" << std::endl;
+
     std::vector<std::thread*> threads;
     std::vector<std::string> ports;
     for (int x=0; x<1; ++x)
     {
-        auto port = 50051 + x;
+        auto port = 80 + x;
         auto portStr = std::string("0.0.0.0:") + std::to_string(port);
         ports.push_back(portStr);
     } 
@@ -83,9 +86,11 @@ int main(int argc, char **argv)
     }
 
 #if ENABLE_UDS_TESTS
-    auto udsT = new std::thread(RunServer, certPath, "unix:///tmp/perftest");
+    auto udsT = new std::thread(RunServer, certPath, "unix:Test");
     threads.push_back(udsT);
 #endif
+
+    auto sharedMemoryThread = std::thread(RunSharedMemoryListener);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 

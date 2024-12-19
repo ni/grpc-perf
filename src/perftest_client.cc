@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <sharedmem_client_interceptor.h>
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -420,10 +421,13 @@ int main(int argc, char **argv)
     args.SetMaxReceiveMessageSize(10 * 100 * 1024 * 1024);
     args.SetMaxSendMessageSize(10 * 100 * 1024 * 1024);
 #if ENABLE_UDS_TESTS
-    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:///tmp/perftest", creds, args));
+    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:Test", creds, args));
 #endif
     string channelTarget = target + ":" + to_string(port);
-    auto client = new NIPerfTestClient(grpc::CreateCustomChannel(channelTarget, creds, args));
+    std::vector<std::unique_ptr<grpc::experimental::ClientInterceptorFactoryInterface>> interceptor_creators;
+    interceptor_creators.push_back(std::make_unique<SharedMemoryForwardingInterceptorFactory>());
+    auto channel = grpc::experimental::CreateCustomChannelWithInterceptors(channelTarget, creds, args, std::move(interceptor_creators));    
+    auto client = new NIPerfTestClient(channel);
     auto monikerClient = new MonikerClient(grpc::CreateCustomChannel(channelTarget, creds, args));
 
     // Verify the client is working correctly
@@ -439,16 +443,16 @@ int main(int argc, char **argv)
     }
     // Verify the client is working correctly
 #if ENABLE_UDS_TESTS
-    result = udsClient->Init(42);
-    if (result != 42)
-    {
-        cout << "Server UDS communication failure!" << endl;
-        return -1;
-    }
-    else
-    {
-        cout << "Init result: " << result << endl;
-    }
+    //result = udsClient->Init(42);
+    //if (result != 42)
+    //{
+    //    cout << "Server UDS communication failure!" << endl;
+    //    return -1;
+    //}
+    //else
+    //{
+    //    cout << "Init result: " << result << endl;
+    //}
 #endif
 
     // Run desired test suites
@@ -460,29 +464,34 @@ int main(int argc, char **argv)
     // RunLatencyStreamTestSuite(*udsClient);
 #endif
 
-    cout << endl << "TCP TESTS" << endl;
-    RunMessagePerformanceTestSuite(*client);
-    PerformAsyncInitTest(*client, 2, 10000);
-    PerformAsyncInitTest(*client, 3, 10000);
-    PerformAsyncInitTest(*client, 5, 10000);
-    PerformAsyncInitTest(*client, 10, 10000);
-    RunReadTestSuite(*client);
-    // RunReadTestSuite(*client);
-    // RunReadComplexTestSuite(*client);
-    // RunSteamingTestSuite(*client);
-    // RunScpiCompareTestSuite(*client);
-    RunLatencyStreamTestSuite(*client);
-    // RunParallelStreamTestSuite(channelTarget, creds);
-    // RunSidebandDataTestSuite(*client);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 100000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
+    while (true)
+    {
+        cout << endl << "TCP TESTS" << endl;
+        RunMessagePerformanceTestSuite(*client);
+        PerformLatencyStreamTest(*client, "streamlatency.txt");
+        //PerformAsyncInitTest(*client, 2, 10000);
+        //PerformAsyncInitTest(*client, 3, 10000);
+        //PerformAsyncInitTest(*client, 5, 10000);
+        //PerformAsyncInitTest(*client, 10, 10000);
+        //RunReadTestSuite(*client);
+        // RunReadTestSuite(*client);
+        // RunReadComplexTestSuite(*client);
+        // RunSteamingTestSuite(*client);
+        // RunScpiCompareTestSuite(*client);
+        // RunLatencyStreamTestSuite(*client);
+        // RunParallelStreamTestSuite(channelTarget, creds);
+        // RunSidebandDataTestSuite(*client);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 100000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+        // PerformSidebandMonikerLatencyTest(*monikerClient, 1000000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
     return 0;   
 }

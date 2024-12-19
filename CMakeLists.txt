@@ -4,16 +4,16 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
-option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
+option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" ON)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
-option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" ON)
+option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
 
 include(FetchContent)
 
 FetchContent_Declare(
   gRPC
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.66.0
+  GIT_TAG        v1.51.0
 )
 set(FETCHCONTENT_QUIET OFF)
 set(protobuf_INSTALL OFF)
@@ -138,6 +138,7 @@ add_executable(perftest_server
   src/perftest_server_app.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/server_shared_memory_handler.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}
@@ -197,6 +198,7 @@ add_executable(perftest_client
   src/perftest_client.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/client_interceptor.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}

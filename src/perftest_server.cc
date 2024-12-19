@@ -4,6 +4,9 @@
 #include <sideband_data.h>
 #include <sideband_grpc.h>
 #include <performance_tests.h>
+#include <grpcpp/impl/codegen/client_context.h>
+#include <grpcpp/impl/codegen/client_unary_call.h>
+#include <grpcpp/support/channel_arguments.h>
 #include <thread>
 #include <sstream>
 #include <fstream>
@@ -11,6 +14,7 @@
 #include <perftest_server.h>
 #include <perftest.grpc.pb.h>
 #include <thread>
+#include <sideband_data.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -420,6 +424,62 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
     }
 }
 
+unsigned int* _readReady = nullptr;
+unsigned int* _writeReady = nullptr;
+
+void SignalReady()
+{
+    InterlockedExchange(_readReady, 1);
+}
+
+void WaitForReadReady()
+{
+    while (InterlockedCompareExchange(_writeReady, 0, 1) == 0);
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void RunSharedMemoryListener()
+{
+    auto startCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
+    auto callCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
+    int64_t sideband_token = 0;
+    uint8_t* sideband_memory = nullptr;
+    char sidebandId[32];
+    InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
+    GetOwnerSidebandDataToken(sidebandId, &sideband_token);
+    SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
+    unsigned int* locks = (unsigned int*)sideband_memory;
+    _writeReady = locks;
+    _readReady = locks + 1;
+    sideband_memory += 8;
+
+    while (true)
+    {
+        //WaitForSingleObject(startCallEvent, INFINITE);
+        WaitForReadReady();
+        auto packedRequest = sideband_memory;
+        auto methodLen = *(int32_t*)packedRequest;
+        packedRequest += 4;
+        std::string methodName((char*)packedRequest, methodLen);
+        packedRequest += methodLen;
+        auto requestLen = *(int32_t*)packedRequest;
+        packedRequest += 4;
+
+        grpc::internal::RpcMethod method(methodName.c_str(), grpc::internal::RpcMethod::NORMAL_RPC);
+        ClientContext context;
+
+        InitParameters request;
+        request.ParseFromArray(packedRequest, (int)requestLen);
+        InitResult initResult;
+        auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
+        
+        initResult.SerializeToArray(sideband_memory, 4096);
+        //SetEvent(callCompleteEvent);
+        SignalReady();
+    }
+}
+    
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void RunServer(const string& certPath, const char* server_address)
@@ -457,9 +517,13 @@ void RunServer(const string& certPath, const char* server_address)
 
     auto cq = builder.AddCompletionQueue();
 
+    std::cout << "Starting server" << std::endl;
 	// Assemble the server.
 	auto server = builder.BuildAndStart();
-	_inProcServer = server->InProcessChannel(grpc::ChannelArguments());
+    if (_inProcServer == nullptr)
+    {
+        _inProcServer = server->InProcessChannel(grpc::ChannelArguments());
+    }
 	cout << "Server listening on " << server_address << endl;
 
     auto nextCall = new ReadComplexAsyncCall();
