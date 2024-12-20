@@ -8,7 +8,7 @@ using namespace std;
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 NIPerfTestClient::NIPerfTestClient(shared_ptr<Channel> channel)
-    : m_Stub(niPerfTestService::NewStub(channel))
+    : _stub(niPerfTestService::NewStub(channel))
 {        
 }
 
@@ -21,7 +21,7 @@ int NIPerfTestClient::Init(int id)
 
     ClientContext context;
     InitResult reply;
-    Status status = m_Stub->Init(&context, request, &reply);
+    Status status = _stub->Init(&context, request, &reply);
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -39,7 +39,7 @@ int NIPerfTestClient::Init(int id, string command)
 
     ClientContext context;
     InitResult reply;
-    Status status = m_Stub->Init(&context, request, &reply);
+    Status status = _stub->Init(&context, request, &reply);
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -55,7 +55,7 @@ int NIPerfTestClient::InitAsync(int id, string command, grpc::CompletionQueue& c
     request.set_id(id);
     request.set_command(command);
     
-    auto rpc = m_Stub->PrepareAsyncInit(&results->context, request, &cq);
+    auto rpc = _stub->PrepareAsyncInit(&results->context, request, &cq);
     rpc->StartCall();
     rpc->Finish(&results->reply, &results->status, (void*)results);
     return 0;
@@ -76,7 +76,7 @@ int NIPerfTestClient::ConfigureVertical(string vi, string channelList, double ra
 
     ClientContext context;
     ConfigureVerticalResponse reply;
-    Status status = m_Stub->ConfigureVertical(&context, request, &reply);
+    Status status = _stub->ConfigureVertical(&context, request, &reply);
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -98,7 +98,7 @@ int NIPerfTestClient::ConfigureHorizontalTiming(string vi, double min_sample_rat
 
     ClientContext context;
     ConfigureHorizontalTimingResponse reply;
-    Status status = m_Stub->ConfigureHorizontalTiming(&context, request, &reply);
+    Status status = _stub->ConfigureHorizontalTiming(&context, request, &reply);
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -115,7 +115,7 @@ int NIPerfTestClient::InitiateAcquisition(string vi)
 
     ClientContext context;
     InitiateAcquisitionResponse reply;
-    Status status = m_Stub->InitiateAcquisition(&context, request, &reply);
+    Status status = _stub->InitiateAcquisition(&context, request, &reply);
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -133,7 +133,7 @@ int NIPerfTestClient::Read(double timeout, int numSamples, double* samples)
 
     ClientContext context;
     ReadResult reply;
-    Status status = m_Stub->Read(&context, request, &reply);    
+    Status status = _stub->Read(&context, request, &reply);    
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -156,7 +156,7 @@ int NIPerfTestClient::ReadComplex(double timeout, int numSamples)
 
     ClientContext context;
     ReadComplexResult reply;
-    Status status = m_Stub->ReadComplex(&context, request, &reply);    
+    Status status = _stub->ReadComplex(&context, request, &reply);    
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -178,7 +178,7 @@ int NIPerfTestClient::ReadComplexArena(double timeout, int numSamples)
 
     ClientContext context;
     ReadComplexResult reply;
-    Status status = m_Stub->ReadComplexArena(&context, request, &reply);    
+    Status status = _stub->ReadComplexArena(&context, request, &reply);    
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -200,7 +200,7 @@ int NIPerfTestClient::TestWrite(int numSamples, double* samples)
 
     ClientContext context;
     TestWriteResult reply;
-    auto status = m_Stub->TestWrite(&context, request, &reply);
+    auto status = _stub->TestWrite(&context, request, &reply);
     if (!status.ok())
     {
         cout << status.error_code() << ": " << status.error_message() << endl;
@@ -216,13 +216,13 @@ unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> NIPerfTestCli
     request.set_num_samples(numSamples);
     request.set_num_iterations(numIterations);
 
-    return m_Stub->ReadContinuously(context, request);
+    return _stub->ReadContinuously(context, request);
 }
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 MonikerClient::MonikerClient(std::shared_ptr<Channel> channel)
-    : m_Stub(MonikerService::NewStub(channel))
+    : _stub(MonikerService::NewStub(channel))
 {    
 }
 

@@ -13,7 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
   gRPC
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.66.0
+  GIT_TAG        v1.68.2
 )
 set(FETCHCONTENT_QUIET OFF)
 set(protobuf_INSTALL OFF)
