@@ -462,16 +462,17 @@ int main(int argc, char **argv)
 
     cout << endl << "TCP TESTS" << endl;
     RunMessagePerformanceTestSuite(*client);
-    PerformAsyncInitTest(*client, 2, 10000);
-    PerformAsyncInitTest(*client, 3, 10000);
-    PerformAsyncInitTest(*client, 5, 10000);
-    PerformAsyncInitTest(*client, 10, 10000);
-    RunReadTestSuite(*client);
+    PerformLatencyStreamTest(*client, "streamlatency1.txt");
+    // PerformAsyncInitTest(*client, 2, 10000);
+    // PerformAsyncInitTest(*client, 3, 10000);
+    // PerformAsyncInitTest(*client, 5, 10000);
+    // PerformAsyncInitTest(*client, 10, 10000);
+    // RunReadTestSuite(*client);
     // RunReadTestSuite(*client);
     // RunReadComplexTestSuite(*client);
     // RunSteamingTestSuite(*client);
     // RunScpiCompareTestSuite(*client);
-    RunLatencyStreamTestSuite(*client);
+    // RunLatencyStreamTestSuite(*client);
     // RunParallelStreamTestSuite(channelTarget, creds);
     // RunSidebandDataTestSuite(*client);
     // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
