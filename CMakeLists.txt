@@ -20,6 +20,17 @@ set(protobuf_INSTALL OFF)
 set(utf8_range_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(gRPC)
 
+if (INCLUDE_GRPC_SIDEBAND)
+  set(INCLUDE_SIDEBAND_RDMA OFF)
+  FetchContent_Declare(
+    grpc-sideband
+    GIT_REPOSITORY https://github.com/ni/grpc-sideband
+    GIT_TAG        v0.1
+  )
+  set(FETCHCONTENT_QUIET OFF)
+  FetchContent_MakeAvailable(grpc-sideband)
+endif()
+
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--allow-shlib-undefined")
@@ -48,9 +59,9 @@ link_directories(.)
 #----------------------------------------------------------------------
 # Include the grpc-sideband cmake build
 #----------------------------------------------------------------------
-if (INCLUDE_GRPC_SIDEBAND)
-  add_subdirectory(third_party/grpc-sideband ${CMAKE_CURRENT_BINARY_DIR}/grpc-sideband)
-endif()
+#if (INCLUDE_GRPC_SIDEBAND)
+#  add_subdirectory(third_party/grpc-sideband ${CMAKE_CURRENT_BINARY_DIR}/grpc-sideband)
+#endif()
 
 #----------------------------------------------------------------------
 # Use the grpc targets directly from this build.
@@ -64,14 +75,14 @@ set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
 #----------------------------------------------------------------------
 # Define libraries to link
 #----------------------------------------------------------------------
-if (INCLUDE_GRPC_SIDEBAND)
-  if(WIN32)
-    link_directories("./third_party/grpc-sideband")
-  else()
-    # Add grpc-sideband deps here
-    link_directories("./third_party/grpc-sideband/linux")
-  endif()
-endif()
+#if (INCLUDE_GRPC_SIDEBAND)
+#  if(WIN32)
+#    link_directories("./third_party/grpc-sideband")
+#  else()
+#    # Add grpc-sideband deps here
+#    link_directories("./third_party/grpc-sideband/linux")
+#  endif()
+#endif()
 
 #----------------------------------------------------------------------
 # Proto file
@@ -122,11 +133,11 @@ add_custom_command(
 #----------------------------------------------------------------------
 # Include generated *.pb.h files
 #----------------------------------------------------------------------
+#"./third_party/grpc-sideband/src"
 include_directories(
   "${CMAKE_CURRENT_BINARY_DIR}"
   "./src"
   "./third_party/grpc"
-  "./third_party/grpc-sideband/src"
   "/snap/flatbuffers/current/include"
   "./third_party/cxxopts/include")
 
@@ -160,9 +171,7 @@ else()
     )
 endif()
 
-#----------------------------------------------------------------------
-# perftest gRPC Server
-#----------------------------------------------------------------------
+# localhost performance checking app
 add_executable(local_perf_check
   src/perftest_server.cc
   src/localhost_perf_check.cc
@@ -189,6 +198,7 @@ else()
     ${DETOURS_LIB}
     )
 endif()
+install(FILES $<TARGET_RUNTIME_DLLS:local_perf_check> TYPE BIN)
 
 #----------------------------------------------------------------------
 # Example C++ application to talk to the perftest gRPC service

@@ -1,8 +1,12 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+
+#if ENABLE_GRPC_SIDEBAND
 #include <sideband_data.h>
 #include <sideband_grpc.h>
+#endif
+
 #include <performance_tests.h>
 #include <thread>
 #include <sstream>

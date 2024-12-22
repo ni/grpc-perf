@@ -1,8 +1,12 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include <client_utilities.h>
+
+#if ENABLE_GRPC_SIDEBAND
 #include <sideband_data.h>
 #include <sideband_grpc.h>
+#endif
+
 #include <performance_tests.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
@@ -830,7 +834,7 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
     BeginMonikerSidebandStreamRequest request;
     request.set_strategy(strategy);
     BeginMonikerSidebandStreamResponse response;
-    client->m_Stub->BeginSidebandStream(&ctx, request, &response);
+    client->_stub->BeginSidebandStream(&ctx, request, &response);
 
 #ifndef _WIN32
     if (strategy == ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY ||
@@ -907,14 +911,14 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_
         BeginTestSidebandStreamRequest request;
         request.set_strategy(strategy);
         request.set_num_samples(numSamples);
-        client.m_Stub->BeginTestSidebandStream(&context, request, &response);
+        client._stub->BeginTestSidebandStream(&context, request, &response);
     }
     auto sidebandIdentifier = response.sideband_identifier();
     int64_t sidebandToken = 0;
     InitClientSidebandData(response.connection_url().c_str(), (::SidebandStrategy)response.strategy(), response.sideband_identifier().c_str(), numSamples, &sidebandToken);
     {
         ClientContext context;
-        auto stream = client.m_Stub->TestSidebandStream(&context);
+        auto stream = client._stub->TestSidebandStream(&context);
 
         TestSidebandStreamRequest readParameters;
         readParameters.set_strategy(strategy);
@@ -971,7 +975,7 @@ void PerformLatencyStreamTest(NIPerfTestClient& client, std::string fileName)
 	niPerfTest::StreamLatencyServer serverData;
 
     ClientContext context;
-    auto stream = client.m_Stub->StreamLatencyTest(&context);
+    auto stream = client._stub->StreamLatencyTest(&context);
     for (int x=0; x<10; ++x)
     {
         stream->Write(clientData);
@@ -1029,7 +1033,7 @@ void PerformLatencyPayloadWriteTest(NIPerfTestClient& client, int numSamples, st
     for (int x=0; x<100; ++x)
     {
         ClientContext context;
-        client.m_Stub->TestWrite(&context, request, &reply);
+        client._stub->TestWrite(&context, request, &reply);
     }
     EnableTracing();
     for (int x=0; x<LatencyTestIterations; ++x)
@@ -1037,7 +1041,7 @@ void PerformLatencyPayloadWriteTest(NIPerfTestClient& client, int numSamples, st
         TraceMarker("Start iteration");
         auto start = chrono::high_resolution_clock::now();
         ClientContext context;
-        client.m_Stub->TestWrite(&context, request, &reply);
+        client._stub->TestWrite(&context, request, &reply);
         auto end = chrono::high_resolution_clock::now();
         auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
         times.emplace_back(elapsed);
@@ -1061,7 +1065,7 @@ void PerformLatencyPayloadWriteStreamTest(NIPerfTestClient& client, int numSampl
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     ClientContext context;
-    auto stream = client.m_Stub->TestWriteContinuously(&context);
+    auto stream = client._stub->TestWriteContinuously(&context);
     for (int x=0; x<100; ++x)
     {
         stream->Write(request);
@@ -1109,10 +1113,10 @@ void PerformLatencyStreamTest2(NIPerfTestClient& client, NIPerfTestClient& clien
     for (int x=0; x<streamCount; ++x)
     {
         streamInfos[x].clientData.set_message(x);       
-        streamInfos[x].rstream = client.m_Stub->StreamLatencyTestServer(&streamInfos[x].context, streamInfos[x].clientData);
+        streamInfos[x].rstream = client._stub->StreamLatencyTestServer(&streamInfos[x].context, streamInfos[x].clientData);
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-        streamInfos[x].wstream = client2.m_Stub->StreamLatencyTestClient(&streamInfos[x].wcontext, &serverResponseData);
+        streamInfos[x].wstream = client2._stub->StreamLatencyTestClient(&streamInfos[x].wcontext, &serverResponseData);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1500));
     for (int x=0; x<100; ++x)
@@ -1169,13 +1173,13 @@ void PerformMessageLatencyTest(NIPerfTestClient& client, std::string fileName)
     for (int x=0; x<100; ++x)
     {
         ClientContext context;
-        client.m_Stub->Init(&context, request, &reply);
+        client._stub->Init(&context, request, &reply);
     }
     for (int x=0; x<LatencyTestIterations; ++x)
     {
         auto start = chrono::high_resolution_clock::now();
         ClientContext context;
-        client.m_Stub->Init(&context, request, &reply);
+        client._stub->Init(&context, request, &reply);
         auto end = chrono::high_resolution_clock::now();
         auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
         times.emplace_back(elapsed);
