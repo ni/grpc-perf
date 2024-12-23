@@ -50,7 +50,7 @@ public:
     int TestWrite(int numSamples, double* samples);
     std::unique_ptr<grpc::ClientReader<niPerfTest::ReadContinuouslyResult>> ReadContinuously(grpc::ClientContext* context, double timeout, int numSamples, int numIterations);
 public:
-    std::unique_ptr<niPerfTestService::Stub> m_Stub;
+    std::unique_ptr<niPerfTestService::Stub> _stub;
 };
 
 //---------------------------------------------------------------------
@@ -61,7 +61,7 @@ public:
     MonikerClient(std::shared_ptr<Channel> channel);
 
 public:
-    std::unique_ptr<MonikerService::Stub> m_Stub;
+    std::unique_ptr<MonikerService::Stub> _stub;
 };
 
 //---------------------------------------------------------------------

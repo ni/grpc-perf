@@ -2,8 +2,12 @@
 //---------------------------------------------------------------------
 #include <cxxopts.hpp>
 #include <client_utilities.h>
+
+#if ENABLE_GRPC_SIDEBAND
 #include <sideband_data.h>
 #include <sideband_grpc.h>
+#endif
+
 #include <performance_tests.h>
 #include <thread>
 #include <sstream>
@@ -22,6 +26,14 @@
 
 void InitDetours();
 void RunServer(const std::string& certPath, const char* server_address);
+
+#if ENABLE_GRPC_SIDEBAND
+void RunAccept()
+{
+    std::atomic_bool stop;
+    RunSidebandSocketsAccept("localhost", 50055, stop);
+}
+#endif
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -77,7 +89,8 @@ int main(int argc, char **argv)
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND
-    auto t = new std::thread(RunSidebandSocketsAccept, "localhost", 50055);
+    std::atomic_bool stop;
+    auto t = new std::thread(RunAccept);
     threads.push_back(t);
 
     auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);
