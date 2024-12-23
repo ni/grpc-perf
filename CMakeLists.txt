@@ -8,6 +8,9 @@ option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
+set(protobuf_INSTALL OFF)
+set(utf8_range_ENABLE_INSTALL OFF)
+set(ABSL_ENABLE_INSTALL OFF)
 
 # gRPC components
 FetchContent_Declare(
@@ -15,8 +18,6 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/grpc/grpc
   GIT_TAG        v1.68.2
 )
-set(protobuf_INSTALL OFF)
-set(utf8_range_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(gRPC)
 
 # cxxopts components
@@ -39,7 +40,7 @@ if (INCLUDE_GRPC_SIDEBAND)
 endif()
 
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--allow-shlib-undefined")
 else()
   cmake_policy(SET CMP0091 NEW)
@@ -96,7 +97,7 @@ add_custom_command(
   COMMAND ${_PROTOBUF_PROTOC}
   ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
     --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-    -I "${datamoniker_proto_path}" -I "${CMAKE_CURRENT_SOURCE_DIR}/third_party/grpc/third_party/protobuf/src"
+    -I "${datamoniker_proto_path}" -I "${grpc_SOURCE_DIR}/third_party/protobuf/src"
     --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
     "${datamoniker_proto}"
   DEPENDS "${datamoniker_proto}")
@@ -115,7 +116,7 @@ add_custom_command(
   COMMAND ${_PROTOBUF_PROTOC}
   ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
     --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-    -I "${perftest_proto_path}" -I "${CMAKE_CURRENT_SOURCE_DIR}/third_party/grpc/third_party/protobuf/src"
+    -I "${perftest_proto_path}" -I "${grpc_SOURCE_DIR}/third_party/protobuf/src"
     --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
     "${perftest_proto}"
   DEPENDS "${perftest_proto}")
