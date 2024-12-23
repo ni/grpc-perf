@@ -1,5 +1,3 @@
-#----------------------------------------------------------------------
-#----------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
@@ -9,17 +7,27 @@ option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
 option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" ON)
 
 include(FetchContent)
+set(FETCHCONTENT_QUIET OFF)
 
+# gRPC components
 FetchContent_Declare(
   gRPC
   GIT_REPOSITORY https://github.com/grpc/grpc
   GIT_TAG        v1.68.2
 )
-set(FETCHCONTENT_QUIET OFF)
 set(protobuf_INSTALL OFF)
 set(utf8_range_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(gRPC)
 
+# cxxopts components
+FetchContent_Declare(
+  cxxopts
+  GIT_REPOSITORY https://github.com/jarro2783/cxxopts
+  GIT_TAG        v3.2.0
+)
+FetchContent_MakeAvailable(cxxopts)
+
+# grpc-sideband components
 if (INCLUDE_GRPC_SIDEBAND)
   set(INCLUDE_SIDEBAND_RDMA OFF)
   FetchContent_Declare(
@@ -27,7 +35,6 @@ if (INCLUDE_GRPC_SIDEBAND)
     GIT_REPOSITORY https://github.com/ni/grpc-sideband
     GIT_TAG        v0.1
   )
-  set(FETCHCONTENT_QUIET OFF)
   FetchContent_MakeAvailable(grpc-sideband)
 endif()
 
@@ -56,16 +63,7 @@ endif()
 find_package(Threads REQUIRED)
 link_directories(.)
 
-#----------------------------------------------------------------------
-# Include the grpc-sideband cmake build
-#----------------------------------------------------------------------
-#if (INCLUDE_GRPC_SIDEBAND)
-#  add_subdirectory(third_party/grpc-sideband ${CMAKE_CURRENT_BINARY_DIR}/grpc-sideband)
-#endif()
-
-#----------------------------------------------------------------------
 # Use the grpc targets directly from this build.
-#----------------------------------------------------------------------
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 set(_REFLECTION grpc++_reflection)
 set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
@@ -84,15 +82,11 @@ set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
 #  endif()
 #endif()
 
-#----------------------------------------------------------------------
 # Proto file
-#----------------------------------------------------------------------
 get_filename_component(datamoniker_proto "data_moniker.proto" ABSOLUTE)
 get_filename_component(datamoniker_proto_path "${datamoniker_proto}" PATH)
 
-#----------------------------------------------------------------------
 # Generated data moniker sources
-#----------------------------------------------------------------------
 set(datamoniker_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.pb.cc")
 set(datamoniker_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.pb.h")
 set(datamoniker_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/data_moniker.grpc.pb.cc")
@@ -107,15 +101,11 @@ add_custom_command(
     "${datamoniker_proto}"
   DEPENDS "${datamoniker_proto}")
 
-#----------------------------------------------------------------------
 # Proto file
-#----------------------------------------------------------------------
 get_filename_component(perftest_proto "perftest.proto" ABSOLUTE)
 get_filename_component(perftest_proto_path "${perftest_proto}" PATH)
 
-#----------------------------------------------------------------------
 # Generated sources
-#----------------------------------------------------------------------
 set(perftest_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/perftest.pb.cc")
 set(perftest_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/perftest.pb.h")
 set(perftest_grpc_srcs "${CMAKE_CURRENT_BINARY_DIR}/perftest.grpc.pb.cc")
@@ -130,20 +120,13 @@ add_custom_command(
     "${perftest_proto}"
   DEPENDS "${perftest_proto}")
 
-#----------------------------------------------------------------------
-# Include generated *.pb.h files
-#----------------------------------------------------------------------
-#"./third_party/grpc-sideband/src"
 include_directories(
   "${CMAKE_CURRENT_BINARY_DIR}"
   "./src"
-  "./third_party/grpc"
   "/snap/flatbuffers/current/include"
-  "./third_party/cxxopts/include")
+  "${cxxopts_SOURCE_DIR}/include")
 
-#----------------------------------------------------------------------
 # perftest gRPC Server
-#----------------------------------------------------------------------
 add_executable(perftest_server
   src/perftest_server.cc
   src/perftest_server_app.cc
@@ -200,9 +183,7 @@ else()
 endif()
 install(FILES $<TARGET_RUNTIME_DLLS:local_perf_check> TYPE BIN)
 
-#----------------------------------------------------------------------
-# Example C++ application to talk to the perftest gRPC service
-#----------------------------------------------------------------------
+# Performance testing client
 add_executable(perftest_client
   src/perftest_client.cc
   src/client_utilities.cc
