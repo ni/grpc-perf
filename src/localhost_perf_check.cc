@@ -16,6 +16,7 @@
 #include <perftest_server.h>
 #include <perftest.grpc.pb.h>
 #include <thread>
+#include <sharedmem_client_interceptor.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -26,6 +27,7 @@
 
 void InitDetours();
 void RunServer(const std::string& certPath, const char* server_address);
+void RunSharedMemoryListener();
 
 #if ENABLE_GRPC_SIDEBAND
 void RunAccept()
@@ -86,6 +88,7 @@ int main(int argc, char **argv)
     threads.push_back(udsT);
 #endif
 
+    auto sharedMemoryThread = std::thread(RunSharedMemoryListener);
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND
@@ -103,7 +106,11 @@ int main(int argc, char **argv)
         auto creds = grpc::InsecureChannelCredentials();
         ::grpc::ChannelArguments args;
         args.SetInt(GRPC_ARG_MINIMAL_STACK, 1);
-        auto client = new NIPerfTestClient(grpc::CreateCustomChannel("localhost:50051", creds, args));
+        std::vector<std::unique_ptr<grpc::experimental::ClientInterceptorFactoryInterface>> interceptor_creators;
+        interceptor_creators.push_back(std::make_unique<SharedMemoryForwardingInterceptorFactory>());
+        auto channel = grpc::experimental::CreateCustomChannelWithInterceptors("localhost:50051", creds, args, std::move(interceptor_creators));    
+        //auto client = new NIPerfTestClient(grpc::CreateCustomChannel("localhost:50051", creds, args));
+        auto client = new NIPerfTestClient(channel);
         auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:perftest", creds, args));
 
         auto result = client->Init(42);

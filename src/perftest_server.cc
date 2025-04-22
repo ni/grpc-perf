@@ -428,60 +428,77 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
     }
 }
 
-unsigned int* _readReady = nullptr;
-unsigned int* _writeReady = nullptr;
-
-void SignalReady()
+class SharedMemoryListener
 {
-    InterlockedExchange(_readReady, 1);
-}
+    unsigned int* _readReady = nullptr;
+    unsigned int* _writeReady = nullptr;
+    HANDLE _startCallEvent;
+    HANDLE _callCompleteEvent;
 
-void WaitForReadReady()
-{
-    while (InterlockedCompareExchange(_writeReady, 0, 1) == 0);
-}
+    void SignalReady()
+    {
+        //SetEvent(_callCompleteEvent);
+        InterlockedExchange(_readReady, 1);
+    }
+
+    void WaitForReadReady()
+    {
+        //WaitForSingleObject(startCallEvent, INFINITE);
+        while (InterlockedCompareExchange(_writeReady, 0, 1) == 0);
+    }
+
+public:
+    SharedMemoryListener()
+    {    
+        _startCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
+        _callCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
+    }
+
+    void Run()
+    {
+        int64_t sideband_token = 0;
+        uint8_t* sideband_memory = nullptr;
+        char sidebandId[32];
+        InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
+        GetOwnerSidebandDataToken(sidebandId, &sideband_token);
+        SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
+        unsigned int* locks = (unsigned int*)sideband_memory;
+        _writeReady = locks;
+        _readReady = locks + 1;
+        sideband_memory += 8;
+
+        while (true)
+        {
+            WaitForReadReady();
+            auto packedRequest = sideband_memory;
+            auto methodLen = *(int32_t*)packedRequest;
+            packedRequest += 4;
+            std::string methodName((char*)packedRequest, methodLen);
+            packedRequest += methodLen;
+            auto requestLen = *(int32_t*)packedRequest;
+            packedRequest += 4;
+
+            grpc::internal::RpcMethod method(methodName.c_str(), grpc::internal::RpcMethod::NORMAL_RPC);
+            ClientContext context;
+
+            InitParameters request;
+            request.ParseFromArray(packedRequest, (int)requestLen);
+            InitResult initResult;
+            auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
+            
+            initResult.SerializeToArray(sideband_memory, 4096);
+            SetEvent(_callCompleteEvent);
+            SignalReady();
+        }
+    }
+};
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 void RunSharedMemoryListener()
 {
-    auto startCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
-    auto callCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
-    int64_t sideband_token = 0;
-    uint8_t* sideband_memory = nullptr;
-    char sidebandId[32];
-    InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
-    GetOwnerSidebandDataToken(sidebandId, &sideband_token);
-    SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
-    unsigned int* locks = (unsigned int*)sideband_memory;
-    _writeReady = locks;
-    _readReady = locks + 1;
-    sideband_memory += 8;
-
-    while (true)
-    {
-        //WaitForSingleObject(startCallEvent, INFINITE);
-        WaitForReadReady();
-        auto packedRequest = sideband_memory;
-        auto methodLen = *(int32_t*)packedRequest;
-        packedRequest += 4;
-        std::string methodName((char*)packedRequest, methodLen);
-        packedRequest += methodLen;
-        auto requestLen = *(int32_t*)packedRequest;
-        packedRequest += 4;
-
-        grpc::internal::RpcMethod method(methodName.c_str(), grpc::internal::RpcMethod::NORMAL_RPC);
-        ClientContext context;
-
-        InitParameters request;
-        request.ParseFromArray(packedRequest, (int)requestLen);
-        InitResult initResult;
-        auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
-        
-        initResult.SerializeToArray(sideband_memory, 4096);
-        //SetEvent(callCompleteEvent);
-        SignalReady();
-    }
+    SharedMemoryListener listener;
+    listener.Run();
 }
     
 //---------------------------------------------------------------------

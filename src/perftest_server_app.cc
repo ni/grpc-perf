@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     std::vector<std::string> ports;
     for (int x=0; x<1; ++x)
     {
-        auto port = 80 + x;
+        auto port = 50051 + x;
         auto portStr = std::string("0.0.0.0:") + std::to_string(port);
         ports.push_back(portStr);
     } 

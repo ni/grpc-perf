@@ -11,8 +11,8 @@ static HANDLE StartCallEvent = INVALID_HANDLE_VALUE;
 static HANDLE CallCompleteEvent = INVALID_HANDLE_VALUE;
 int64_t sideband_token = 0;
 uint8_t* sideband_memory = nullptr;
-unsigned int* _readReady = nullptr;
-unsigned int* _writeReady = nullptr;
+unsigned int* _clientReadReady = nullptr;
+unsigned int* _clientWriteReady = nullptr;
 
 class SharedMemoryForwardingInterceptor : public grpc::experimental::Interceptor 
 {    
@@ -27,20 +27,22 @@ public:
             InitClientSidebandData("TestBuffer", SidebandStrategy::SHARED_MEMORY, "TestBuffer", 4096, &sideband_token);
             SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
             unsigned int* locks = (unsigned int*)sideband_memory;
-            _writeReady = locks;
-            _readReady = locks + 1;
+            _clientWriteReady = locks;
+            _clientReadReady = locks + 1;
             sideband_memory += 8;
         }
     }
 
     void SignalReady()
     {
-        InterlockedExchange(_writeReady, 1);
+        //SetEvent(StartCallEvent);
+        InterlockedExchange(_clientWriteReady, 1);
     }
 
     void WaitForReadReady()
     {
-        while (InterlockedCompareExchange(_readReady, 0, 1) == 0);
+        //WaitForSingleObject(CallCompleteEvent, INFINITE);
+        while (InterlockedCompareExchange(_clientReadReady, 0, 1) == 0);
     }
 
     void Intercept(::grpc::experimental::InterceptorBatchMethods* methods) override 

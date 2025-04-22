@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
-option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" ON)
+option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
 option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
 
@@ -45,7 +45,7 @@ if(NOT MSVC)
 else()
   cmake_policy(SET CMP0091 NEW)
   add_definitions(-D_WIN32_WINNT=0x600 -bigobj)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4018 /wd4146 ")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
@@ -162,6 +162,8 @@ add_executable(local_perf_check
   src/localhost_perf_check.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/server_shared_memory_handler.cc
+  src/client_interceptor.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}
