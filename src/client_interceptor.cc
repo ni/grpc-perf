@@ -6,7 +6,7 @@
 #include <perftest.pb.h>
 #include <google/protobuf/io/tokenizer.h>
 
-
+constexpr int BufferSizeBytes = 4096 - 8; // Reserve first 8 bytes for the lock variables
 static HANDLE StartCallEvent = INVALID_HANDLE_VALUE;
 static HANDLE CallCompleteEvent = INVALID_HANDLE_VALUE;
 int64_t sideband_token = 0;
@@ -24,7 +24,7 @@ public:
         {
             StartCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
             CallCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
-            InitClientSidebandData("TestBuffer", SidebandStrategy::SHARED_MEMORY, "TestBuffer", 4096, &sideband_token);
+            InitClientSidebandData("TestBuffer", SidebandStrategy::SHARED_MEMORY, "TestBuffer", BufferSizeBytes + 8, &sideband_token);
             SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
             unsigned int* locks = (unsigned int*)sideband_memory;
             _clientWriteReady = locks;
@@ -61,6 +61,7 @@ public:
             // need to maintain a list of the responses.
             // std::string requested_key;
 
+			// serialize the request message
             auto packedRequest = sideband_memory;
             auto method = info_->method();
             auto methodLen = strlen(method);
@@ -92,9 +93,12 @@ public:
             WaitForReadReady();
             //niPerfTest::InitResult r;
             //r.set_status(42);
-            //void* data = new int8_t[4096];
-            //r.SerializeToArray(data, 4096);
-            result->ParseFromArray(sideband_memory, 4096);
+            //void* data = new int8_t[BufferSizeBytes];
+            //r.SerializeToArray(data, BufferSizeBytes);
+            
+            // Skip the first 4 bytes for the length of the response, which isn't needed in C++
+			auto response_memory = sideband_memory + 4;
+            result->ParseFromArray(response_memory, BufferSizeBytes - 4);
             //std::cout << "Pre Receive Message" << std::endl;
         }
         if (methods->QueryInterceptionHookPoint(grpc::experimental::InterceptionHookPoints::PRE_RECV_STATUS)) 

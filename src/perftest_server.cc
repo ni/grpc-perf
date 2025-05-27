@@ -456,10 +456,11 @@ public:
 
     void Run()
     {
+        constexpr int BufferSizeBytes = 4096 - 8; // Reserve first 8 bytes for the lock variables
         int64_t sideband_token = 0;
         uint8_t* sideband_memory = nullptr;
         char sidebandId[32];
-        InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
+        InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, BufferSizeBytes + 8, sidebandId);
         GetOwnerSidebandDataToken(sidebandId, &sideband_token);
         SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
         unsigned int* locks = (unsigned int*)sideband_memory;
@@ -485,8 +486,12 @@ public:
             request.ParseFromArray(packedRequest, (int)requestLen);
             InitResult initResult;
             auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
-            
-            initResult.SerializeToArray(sideband_memory, 4096);
+
+            auto responseMemory = sideband_memory;
+            (*(int32_t*)responseMemory) = (int32_t)initResult.ByteSizeLong();
+            responseMemory += 4;
+            initResult.SerializeToArray(responseMemory, BufferSizeBytes - 4);
+
             SetEvent(_callCompleteEvent);
             SignalReady();
         }

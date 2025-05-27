@@ -950,13 +950,14 @@ void PerformMessagePerformanceTest(NIPerfTestClient& client)
     cout << "Start Messages per second test" << endl;
 
     auto start = chrono::high_resolution_clock::now();
-    for (int x=0; x<50000; ++x)
+    static int messageCount = 50000;
+    for (int x=0; x<messageCount; ++x)
     {
         client.Init(42);
     }
     auto end = chrono::high_resolution_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-    double msgsPerSecond = (50000.0 * 1000.0 * 1000.0) / (double)elapsed.count();
+    double msgsPerSecond = (1000.0 * 1000.0 * messageCount) / (double)elapsed.count();
 
     cout << "Result: " << msgsPerSecond << " messages/s" << endl << endl;
 }
