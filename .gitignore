@@ -24,4 +24,8 @@ perftest_server
 *.pb.cc
 *.pb.h
 
-__pycache__
+# Python
+.venv/
+.idea/
+__pycache__/
+*.pyc
