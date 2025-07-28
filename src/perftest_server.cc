@@ -404,7 +404,7 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
     if (!_complete)
     {
         Arena arena;
-        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadComplexResult>(&arena);
         auto numSamples = _request.num_samples();
         response->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)

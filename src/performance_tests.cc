@@ -250,7 +250,7 @@ void PerformArenaPackTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadComplexResult>(&arena);
         response->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)
         {
@@ -303,7 +303,7 @@ void PerformArenaPackLidarTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadLidarResult>(&arena);
         response->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)
         {
@@ -360,7 +360,7 @@ void PerformArenaPackUnpackTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadComplexResult>(&arena);
         response->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)
         {
@@ -370,7 +370,7 @@ void PerformArenaPackUnpackTest(int numSamples, int numIterations)
         }
         response->set_status(0);
 
-        auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+        auto parsed = Arena::Create<niPerfTest::ReadComplexResult>(&arena);
         parsed->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)
         {
@@ -437,7 +437,7 @@ void PerformArenaPackUnpackLidarTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadLidarResult>(&arena);
         response->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)
         {
@@ -449,7 +449,7 @@ void PerformArenaPackUnpackLidarTest(int numSamples, int numIterations)
         }
         response->set_status(0);
 
-        auto parsed = Arena::CreateMessage<niPerfTest::ReadLidarResult>(&arena);
+        auto parsed = Arena::Create<niPerfTest::ReadLidarResult>(&arena);
         parsed->mutable_samples()->Reserve(numSamples);
         for (int x=0; x<numSamples; ++x)
         {
@@ -520,7 +520,7 @@ void PerformArenaPackVectorsTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult2>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadComplexResult2>(&arena);
         response->mutable_samples()->mutable_real_values()->Reserve(numSamples);
         response->mutable_samples()->mutable_real_values()->Resize(numSamples, 3.14);
         response->mutable_samples()->mutable_imaginary_values()->Reserve(numSamples);
@@ -569,7 +569,7 @@ void PerformArenaPackLidarVectorsTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult2>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadLidarResult2>(&arena);
         response->mutable_samples()->mutable_x_values()->Reserve(numSamples);
         response->mutable_samples()->mutable_x_values()->Resize(numSamples, 3.14);
         response->mutable_samples()->mutable_y_values()->Reserve(numSamples);
@@ -624,14 +624,14 @@ void PerformArenaPackUnpackVectorsTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadComplexResult2>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadComplexResult2>(&arena);
         response->mutable_samples()->mutable_real_values()->Reserve(numSamples);
         response->mutable_samples()->mutable_real_values()->Resize(numSamples, 3.14);
         response->mutable_samples()->mutable_imaginary_values()->Reserve(numSamples);
         response->mutable_samples()->mutable_imaginary_values()->Resize(numSamples, 4.56);
         response->set_status(0);
 
-        auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult2>(&arena);
+        auto parsed = Arena::Create<niPerfTest::ReadComplexResult2>(&arena);
 
         auto start = chrono::high_resolution_clock::now();
         for (int i=0; i<numIterations; ++i)
@@ -649,7 +649,7 @@ void PerformArenaPackUnpackVectorsTest(int numSamples, int numIterations)
                 packSize = result.length();
                 spaceUsed = arena.SpaceUsed();
             }
-            //auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+            //auto parsed = Arena::Create<niPerfTest::ReadComplexResult>(&arena);
             parsed->ParseFromString(result);
         }
 
@@ -677,7 +677,7 @@ void PerformArenaPackUnpackLidarVectorsTest(int numSamples, int numIterations)
     int spaceUsed = 0;
     {
         Arena arena(initial_block, initial_block_size);
-        auto response = Arena::CreateMessage<niPerfTest::ReadLidarResult2>(&arena);
+        auto response = Arena::Create<niPerfTest::ReadLidarResult2>(&arena);
         response->mutable_samples()->mutable_x_values()->Reserve(numSamples);
         response->mutable_samples()->mutable_x_values()->Resize(numSamples, 3.14);
         response->mutable_samples()->mutable_y_values()->Reserve(numSamples);
@@ -688,7 +688,7 @@ void PerformArenaPackUnpackLidarVectorsTest(int numSamples, int numIterations)
         response->mutable_samples()->mutable_a_values()->Resize(numSamples, 4.56);
         response->set_status(0);
 
-        auto parsed = Arena::CreateMessage<niPerfTest::ReadLidarResult2>(&arena);
+        auto parsed = Arena::Create<niPerfTest::ReadLidarResult2>(&arena);
 
         auto start = chrono::high_resolution_clock::now();
         for (int i=0; i<numIterations; ++i)
@@ -708,7 +708,7 @@ void PerformArenaPackUnpackLidarVectorsTest(int numSamples, int numIterations)
                 packSize = result.length();
                 spaceUsed = arena.SpaceUsed();
             }
-            //auto parsed = Arena::CreateMessage<niPerfTest::ReadComplexResult>(&arena);
+            //auto parsed = Arena::Create<niPerfTest::ReadComplexResult>(&arena);
             parsed->ParseFromString(result);
         }
 
@@ -981,6 +981,8 @@ void PerformLatencyStreamTest(NIPerfTestClient& client, std::string fileName)
         stream->Write(clientData);
         stream->Read(&serverData);
     }
+
+    std::cout << "Warmup complete, Starting latency test..." << std::endl;
 
     EnableTracing();
     for (int x=0; x<LatencyTestIterations; ++x)

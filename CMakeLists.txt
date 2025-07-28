@@ -16,7 +16,7 @@ set(ABSL_ENABLE_INSTALL OFF)
 FetchContent_Declare(
   gRPC
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.68.2
+  GIT_TAG        v1.73.1
 )
 FetchContent_MakeAvailable(gRPC)
 

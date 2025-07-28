@@ -25,3 +25,8 @@ perftest_server
 *.pb.h
 
 __pycache__
+
+# Rust build artifacts
+rust/target/
+rust/Cargo.lock
+*.rs.bk

@@ -1,7 +1,19 @@
 # gRPC performance test application
 
-the project supports Windows, Linux and Linux RT for both the client and server.
-Always build release when running benchmarks.  There is a large difference in performance between debug and release.
+This project supports Windows, Linux and Linux RT for both the client and server.
+Always build release when running benchmarks. There is a large difference in performance between debug and release.
+
+## Available Implementations
+
+This repository contains gRPC performance test implementations in multiple languages:
+
+- **C++** (`src/`) - Primary implementation with client and server
+- **C#/.NET** (`dotnet/`) - Server implementation using ASP.NET Core
+- **Python** (`python/`) - Client implementation 
+- **Rust** (`rust/`) - High-performance server implementation using Tonic
+- **LabVIEW** (`labview/`) - LabVIEW integration components
+
+All server implementations are compatible with the C++ client for cross-language performance testing.
 
 ## Building on Windows
 
@@ -106,6 +118,57 @@ Build Release
 > cd cmake/build
 > cmake -DCMAKE_BUILD_TYPE=Release ../..
 > make
+```
+
+## Building Rust Server
+
+The Rust implementation provides a high-performance gRPC server implementation.
+
+### Prerequisites
+- Rust 1.70+ (install via [rustup](https://rustup.rs/))
+- Protocol Buffers compiler (`protoc`)
+
+On Ubuntu/Debian:
+```bash
+sudo apt update
+sudo apt install protobuf-compiler
+```
+
+On macOS:
+```bash
+brew install protobuf
+```
+
+### Building
+From the `rust/` directory:
+
+```bash
+cd rust
+cargo build --release
+```
+
+Or use the provided build script:
+```bash
+cd rust
+./build.sh
+```
+
+### Running
+```bash
+cd rust
+./target/release/perftest_server
+```
+
+Run with custom options:
+```bash
+cd rust
+./target/release/perftest_server --port 8080 --address 127.0.0.1
+```
+
+For help:
+```bash
+cd rust
+./target/release/perftest_server --help
 ```
 
 ## Running Tests
