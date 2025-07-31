@@ -28,6 +28,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cxxopts)
 
+# nlohmann/json components
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json
+  GIT_TAG        v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 # grpc-sideband components
 if (INCLUDE_GRPC_SIDEBAND)
   set(INCLUDE_SIDEBAND_RDMA OFF)
@@ -161,6 +169,7 @@ add_executable(local_perf_check
   src/localhost_perf_check.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/test_config.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}
@@ -169,6 +178,7 @@ add_executable(local_perf_check
 if (INCLUDE_GRPC_SIDEBAND)
   target_link_libraries(local_perf_check
     ni_grpc_sideband
+    nlohmann_json::nlohmann_json
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
@@ -176,6 +186,7 @@ if (INCLUDE_GRPC_SIDEBAND)
     )
 else()
   target_link_libraries(local_perf_check
+    nlohmann_json::nlohmann_json
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
@@ -189,6 +200,7 @@ add_executable(perftest_client
   src/perftest_client.cc
   src/client_utilities.cc
   src/performance_tests.cc
+  src/test_config.cc
   ${perftest_proto_srcs}
   ${perftest_grpc_srcs}
   ${datamoniker_proto_srcs}
@@ -197,12 +209,14 @@ add_executable(perftest_client
 if (INCLUDE_GRPC_SIDEBAND)
   target_link_libraries(perftest_client
     ni_grpc_sideband
+    nlohmann_json::nlohmann_json
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     )
 else()
   target_link_libraries(perftest_client
+    nlohmann_json::nlohmann_json
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}

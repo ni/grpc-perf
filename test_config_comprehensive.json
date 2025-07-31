@@ -1,0 +1,47 @@
+{
+    "test_suites": {
+        "message_performance": true,
+        "latency_stream": true,
+        "message_latency": true,
+        "read_tests": true,
+        "read_complex_tests": false,
+        "write_tests": true,
+        "streaming_tests": true,
+        "scpi_compare_tests": false,
+        "uds_tests": false
+    },
+    "async_init_tests": {
+        "enabled": true,
+        "command_counts": [2, 5, 10],
+        "iterations": 5000
+    },
+    "parallel_stream_tests": {
+        "enabled": false,
+        "client_counts": [2, 4],
+        "sample_counts": [1000, 10000]
+    },
+    "payload_write_tests": {
+        "enabled": true,
+        "payload_sizes": [1, 16, 64, 1024],
+        "output_prefix": "payloadlatency"
+    },
+    "payload_stream_tests": {
+        "enabled": false,
+        "payload_sizes": [1, 16, 64, 1024],
+        "output_prefix": "payloadstreamlatency"
+    },
+    "sideband_tests": {
+        "enabled": false,
+        "buffer_sizes": [1048576, 4194304],
+        "strategies": ["SOCKETS"]
+    },
+    "packing_tests": {
+        "enabled": false,
+        "sample_counts": [1000, 10000],
+        "iteration_counts": [1000]
+    },
+    "single_latency_stream": {
+        "enabled": true,
+        "filename": "streamlatency_single.txt"
+    }
+}

@@ -3,6 +3,7 @@
 #include <client_utilities.h>
 #include <cxxopts.hpp>
 #include <performance_tests.h>
+#include <test_config.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
@@ -307,6 +308,165 @@ void RunSidebandDataTestSuite(NIPerfTestClient& client)
 }
 #endif
 
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void PerformPackingTests();
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+void RunConfiguredTests(const TestConfig& config, NIPerfTestClient& client, 
+                        const string& channelTarget, std::shared_ptr<grpc::ChannelCredentials> creds,
+                        MonikerClient* monikerClient = nullptr, NIPerfTestClient* udsClient = nullptr)
+{
+    cout << endl << "Running configured tests..." << endl;
+
+    // Run test suites
+    if (config.message_performance.enabled)
+    {
+        RunMessagePerformanceTestSuite(client);
+    }
+
+    if (config.latency_stream.enabled)
+    {
+        RunLatencyStreamTestSuite(client);
+    }
+
+    if (config.message_latency.enabled)
+    {
+        RunMessageLatencyTestSuite(client);
+    }
+
+    if (config.read_tests.enabled)
+    {
+        RunReadTestSuite(client);
+    }
+
+    if (config.read_complex_tests.enabled)
+    {
+        RunReadComplexTestSuite(client);
+    }
+
+    if (config.write_tests.enabled)
+    {
+        RunWriteTestSuite(client);
+    }
+
+    if (config.streaming_tests.enabled)
+    {
+        RunSteamingTestSuite(client);
+    }
+
+    if (config.scpi_compare_tests.enabled)
+    {
+        RunScpiCompareTestSuite(client);
+    }
+
+    // Run UDS tests if enabled and client available
+#if ENABLE_UDS_TESTS
+    if (config.uds_tests.enabled && udsClient)
+    {
+        cout << "UDS TESTS" << endl;
+        RunMessagePerformanceTestSuite(*udsClient);
+        RunLatencyStreamTestSuite(*udsClient);
+    }
+#endif
+
+    // Run single latency stream test
+    if (config.single_latency_stream.enabled)
+    {
+        PerformLatencyStreamTest(client, config.single_latency_stream.filename);
+    }
+
+    // Run async init tests
+    if (config.async_init_tests.enabled)
+    {
+        cout << "Running Async Init Tests" << endl;
+        for (int commands : config.async_init_tests.command_counts)
+        {
+            PerformAsyncInitTest(client, commands, config.async_init_tests.iterations);
+        }
+    }
+
+    // Run parallel stream tests
+    if (config.parallel_stream_tests.enabled)
+    {
+        RunParallelStreamTestSuite(channelTarget, creds);
+    }
+
+    // Run payload write tests
+    if (config.payload_write_tests.enabled)
+    {
+        cout << "Start Configured Payload Write Tests" << endl;
+        for (int size : config.payload_write_tests.payload_sizes)
+        {
+            string filename = config.payload_write_tests.output_prefix + to_string(size) + ".txt";
+            PerformLatencyPayloadWriteTest(client, size, filename);
+        }
+    }
+
+    // Run payload stream tests
+    if (config.payload_stream_tests.enabled)
+    {
+        cout << "Start Configured Payload Stream Tests" << endl;
+        for (int size : config.payload_stream_tests.payload_sizes)
+        {
+            string filename = config.payload_stream_tests.output_prefix + to_string(size) + ".txt";
+            PerformLatencyPayloadWriteStreamTest(client, size, filename);
+        }
+    }
+
+#if ENABLE_GRPC_SIDEBAND
+    // Run sideband tests
+    if (config.sideband_tests.enabled)
+    {
+        cout << "Start Configured Sideband Tests" << endl;
+        for (const string& strategy_str : config.sideband_tests.strategies)
+        {
+            cout << strategy_str << " Tests" << endl;
+            for (int buffer_size : config.sideband_tests.buffer_sizes)
+            {
+                string message = to_string(buffer_size / (1024 * 1024)) + " MB Buffer";
+                
+                if (strategy_str == "SOCKETS")
+                {
+                    PerformSidebandReadTest(client, buffer_size, ni::data_monikers::SidebandStrategy::SOCKETS, message);
+                }
+                else if (strategy_str == "RDMA")
+                {
+                    PerformSidebandReadTest(client, buffer_size, ni::data_monikers::SidebandStrategy::RDMA, message);
+                }
+                // Add more strategies as needed
+            }
+        }
+        
+        // Run sideband moniker tests if available
+        if (monikerClient)
+        {
+            for (const string& strategy_str : config.sideband_tests.strategies)
+            {
+                if (strategy_str == "SOCKETS_LOW_LATENCY")
+                {
+                    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+                }
+                else if (strategy_str == "RDMA_LOW_LATENCY")
+                {
+                    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+                }
+            }
+        }
+    }
+#endif
+
+    // Run packing tests
+    if (config.packing_tests.enabled)
+    {
+        cout << "Start Configured Packing Tests" << endl;
+        PerformPackingTests();
+    }
+}
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
 void PerformPackingTests()
 {
 #if (ENABLE_FLATBUFFERS)
@@ -368,6 +528,8 @@ int main(int argc, char **argv)
       ("c,cert", "path to the certificate file to be used", cxxopts::value<string>()->default_value(""))
       ("t,target", "target address of the desired server server", cxxopts::value<string>()->default_value("localhost"))
       ("p,port", "port to connect to on the target", cxxopts::value<int>()->default_value("50051"))
+      ("config", "path to the test configuration file", cxxopts::value<string>()->default_value("test_config.json"))
+      ("generate-config", "generate a default configuration file and exit")
       ("h,help", "show usage")
       ;
 
@@ -378,9 +540,31 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    // Handle config file generation
+    if (parse_result.count("generate-config"))
+    {
+        TestConfig config;
+        string config_file = parse_result["config"].as<string>();
+        if (config.SaveDefaultToFile(config_file))
+        {
+            cout << "Default configuration saved to: " << config_file << endl;
+        }
+        else
+        {
+            cout << "Failed to save configuration file!" << endl;
+            return -1;
+        }
+        return 0;
+    }
+
     string cert_path = parse_result["cert"].as<string>();
     string target = parse_result["target"].as<string>();
     int port = parse_result["port"].as<int>();
+    string config_file = parse_result["config"].as<string>();
+
+    // Load test configuration
+    TestConfig test_config;
+    test_config.LoadFromFile(config_file);
 
     // Configure gRPC
     // grpc_init();
@@ -451,39 +635,14 @@ int main(int argc, char **argv)
     }
 #endif
 
-    // Run desired test suites
+    // Run desired test suites based on configuration
+    RunConfiguredTests(test_config, *client, channelTarget, creds, monikerClient
 #if ENABLE_UDS_TESTS
-    cout << "UDS TESTS" << endl;
-    // RunReadTestSuite(*udsClient);
-    // RunSteamingTestSuite(*udsClient);
-    // RunMessagePerformanceTestSuite(*udsClient);
-    // RunLatencyStreamTestSuite(*udsClient);
+        , udsClient
+#else
+        , nullptr
 #endif
-
-    cout << endl << "TCP TESTS" << endl;
-    RunMessagePerformanceTestSuite(*client);
-    PerformLatencyStreamTest(*client, "streamlatency1.txt");
-    // PerformAsyncInitTest(*client, 2, 10000);
-    // PerformAsyncInitTest(*client, 3, 10000);
-    // PerformAsyncInitTest(*client, 5, 10000);
-    // PerformAsyncInitTest(*client, 10, 10000);
-    // RunReadTestSuite(*client);
-    // RunReadTestSuite(*client);
-    // RunReadComplexTestSuite(*client);
-    // RunSteamingTestSuite(*client);
-    // RunScpiCompareTestSuite(*client);
-    // RunLatencyStreamTestSuite(*client);
-    // RunParallelStreamTestSuite(channelTarget, creds);
-    // RunSidebandDataTestSuite(*client);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, niPerfTest::SidebandStrategy::SOCKETS);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 10000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 100000, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
-    // PerformSidebandMonikerLatencyTest(*monikerClient, 1000000, niPerfTest::SidebandStrategy::RDMA_LOW_LATENCY);
+    );
+    
     return 0;   
 }

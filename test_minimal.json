@@ -1,0 +1,34 @@
+{
+    "test_suites": {
+        "message_performance": true,
+        "latency_stream": false,
+        "message_latency": false,
+        "read_tests": false,
+        "read_complex_tests": false,
+        "write_tests": false,
+        "streaming_tests": false,
+        "scpi_compare_tests": false,
+        "uds_tests": false
+    },
+    "async_init_tests": {
+        "enabled": false
+    },
+    "parallel_stream_tests": {
+        "enabled": false
+    },
+    "payload_write_tests": {
+        "enabled": false
+    },
+    "payload_stream_tests": {
+        "enabled": false
+    },
+    "sideband_tests": {
+        "enabled": false
+    },
+    "packing_tests": {
+        "enabled": false
+    },
+    "single_latency_stream": {
+        "enabled": false
+    }
+}

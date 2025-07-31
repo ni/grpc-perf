@@ -1,0 +1,47 @@
+{
+    "test_suites": {
+        "message_performance": true,
+        "latency_stream": false,
+        "message_latency": false,
+        "read_tests": false,
+        "read_complex_tests": false,
+        "write_tests": false,
+        "streaming_tests": false,
+        "scpi_compare_tests": false,
+        "uds_tests": false
+    },
+    "async_init_tests": {
+        "enabled": false,
+        "command_counts": [2, 3, 5, 10],
+        "iterations": 10000
+    },
+    "parallel_stream_tests": {
+        "enabled": false,
+        "client_counts": [2, 4, 8, 16],
+        "sample_counts": [1000, 10000, 100000, 200000]
+    },
+    "payload_write_tests": {
+        "enabled": false,
+        "payload_sizes": [1, 8, 16, 32, 64, 128, 1024, 32768],
+        "output_prefix": "payloadlatency"
+    },
+    "payload_stream_tests": {
+        "enabled": false,
+        "payload_sizes": [1, 8, 16, 32, 64, 128, 1024, 32768],
+        "output_prefix": "payloadstreamlatency"
+    },
+    "sideband_tests": {
+        "enabled": false,
+        "buffer_sizes": [4194304],
+        "strategies": ["SOCKETS", "RDMA"]
+    },
+    "packing_tests": {
+        "enabled": false,
+        "sample_counts": [1000, 10000, 100000],
+        "iteration_counts": [5000, 10000]
+    },
+    "single_latency_stream": {
+        "enabled": true,
+        "filename": "streamlatency1.txt"
+    }
+}

@@ -173,6 +173,34 @@ cd rust
 
 ## Running Tests
 
+### New Configuration System ⭐
+
+The performance test client now supports JSON configuration files to specify which tests to run, eliminating the need to modify and recompile source code.
+
+**Quick Configuration Setup:**
+```bash
+# Generate a default configuration file
+./perftest_client --generate-config
+
+# Edit test_config.json to enable/disable desired tests
+# Run with the configuration
+./perftest_client
+
+# Or specify a custom config file
+./perftest_client --config my_custom_tests.json
+```
+
+**Command Line Options:**
+- `--config <file>`: Specify configuration file (default: test_config.json)
+- `--generate-config`: Generate a default configuration file and exit
+- `--cert <file>`: Certificate file path for secure connections
+- `--target <address>`: Target server address (default: localhost)
+- `--port <number>`: Target server port (default: 50051)
+
+For detailed configuration options and examples, see [CONFIG_README.md](CONFIG_README.md).
+
+### Traditional Usage
+
 Start the server, perftest_server, on the server machine.
 Run the client, perftest_client.
 If you want to run the client on a different machine pass in the server to conect to: perftest_client --target={server name or ip}
