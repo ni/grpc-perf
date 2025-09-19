@@ -1,11 +1,21 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <atomic>
+#include <sched.h>
+#include <fcntl.h>
+
 #include <client_utilities.h>
 
 #if ENABLE_GRPC_SIDEBAND
 #include <sideband_data.h>
 #include <sideband_grpc.h>
 #endif
+// #include <boost/interprocess/sync/named_semaphore.hpp>
+// #include <sys/mman.h>
 
 #include <performance_tests.h>
 #include <grpcpp/impl/codegen/client_context.h>
@@ -21,10 +31,10 @@
 #include <sideband_data.h>
 
 #ifndef _WIN32
-#include <unistd.h>
+// #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <sched.h>
+//#include <sched.h>
 #endif
 
 //---------------------------------------------------------------------
@@ -41,14 +51,13 @@ using grpc::Status;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-using namespace std;
 using namespace niPerfTest;
 using namespace google::protobuf;
 using namespace ni::data_monikers;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-using timeVector = vector<chrono::microseconds>;
+using timeVector = std::vector<std::chrono::microseconds>;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
@@ -370,7 +379,7 @@ std::string read_keycert( const std::string& filename)
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-std::shared_ptr<grpc::ServerCredentials> CreateCredentials(const string& certPath)
+std::shared_ptr<grpc::ServerCredentials> CreateCredentials(const std::string& certPath)
 {
 	std::shared_ptr<grpc::ServerCredentials> creds;
 	if (!certPath.empty())
@@ -428,30 +437,106 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
     }
 }
 
+#define SHM_NAME "/my_spin_semaphore"
+
+typedef struct {
+    std::atomic<int> count;
+} spin_semaphore_t;
+
+spin_semaphore_t *create_or_open_semaphore(const char *name, int initial_count, int create) {
+    int flags = O_RDWR;
+    if (create) flags |= O_CREAT;
+
+    int fd = shm_open(name, flags, 0666);
+    if (fd == -1) {
+        perror("shm_open");
+        exit(1);
+    }
+
+    if (create) {
+        if (ftruncate(fd, sizeof(spin_semaphore_t)) == -1) {
+            perror("ftruncate");
+            exit(1);
+        }
+    }
+
+    spin_semaphore_t* sem = (spin_semaphore_t*)mmap(NULL, sizeof(spin_semaphore_t),
+                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (sem == MAP_FAILED) {
+        perror("mmap");
+        exit(1);
+    }
+    if (create) {
+        atomic_init(&sem->count, initial_count);
+    }
+    close(fd); // fd no longer needed after mmap
+    return sem;
+}
+
+void spin_wait(spin_semaphore_t *sem) {
+    int val;
+    do {
+        while (std::atomic_load_explicit(&sem->count, std::memory_order_relaxed) <= 0)
+            sched_yield();
+        val = std::atomic_fetch_sub_explicit(&sem->count, 1, std::memory_order_acquire);
+    } while (val <= 0);
+}
+
+void spin_post(spin_semaphore_t *sem) {
+    std::atomic_fetch_add_explicit(&sem->count, 1, std::memory_order_release);
+}
+
+// struct SharedAtomic {
+//     std::atomic<int> flag;
+// };
+
+// boost::interprocess::named_semaphore _startCallEvent(boost::interprocess::open_or_create, "StartCallEvent", 0);
+// boost::interprocess::named_semaphore _callCompleteEvent(boost::interprocess::open_or_create, "CallCompleteEvent", 0);
+
 class SharedMemoryListener
 {
-    unsigned int* _readReady = nullptr;
-    unsigned int* _writeReady = nullptr;
-    HANDLE _startCallEvent;
-    HANDLE _callCompleteEvent;
+    volatile int32_t* _readReady = nullptr;
+    volatile int32_t* _writeReady = nullptr;
+    // SharedAtomic* _readReady = nullptr;
+    // SharedAtomic* _writeReady = nullptr;
+    //HANDLE _startCallEvent;
+    //HANDLE _callCompleteEvent;
+    spin_semaphore_t* _startCallEvent = nullptr;
+    spin_semaphore_t* _callCompleteEvent = nullptr;
 
     void SignalReady()
     {
         //SetEvent(_callCompleteEvent);
-        InterlockedExchange(_readReady, 1);
+        //InterlockedExchange(_readReady, 1);
+        //_readReady->flag.store(1, std::memory_order_release);
+        //*_readReady = 1;
+        //_callCompleteEvent.post();
+        spin_post(_callCompleteEvent);
     }
 
     void WaitForReadReady()
     {
+        //std::cout << "Waiting for call start" << std::endl;
         //WaitForSingleObject(startCallEvent, INFINITE);
-        while (InterlockedCompareExchange(_writeReady, 0, 1) == 0);
+        // int expected = 1;
+        // do { expected = 1; _writeReady->flag.compare_exchange_strong(expected, 0); } while (expected == 0);
+        // while (*_writeReady == 0)
+        // {
+        //     // Spin until the write is ready
+        //     //std::this_thread::yield();
+        // }
+        // *_writeReady = 0;
+        //std::cout << "Call started" << std::endl;
+        //while (InterlockedCompareExchange(_writeReady, 0, 1) == 0);
+        //_startCallEvent.wait();
+        spin_wait(_startCallEvent);
     }
 
 public:
     SharedMemoryListener()
     {    
-        _startCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
-        _callCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
+        _startCallEvent = create_or_open_semaphore("/StartCallEvent", 0, true);
+        _callCompleteEvent = create_or_open_semaphore("/CallCompleteEvent", 0, true);
     }
 
     void Run()
@@ -462,10 +547,12 @@ public:
         InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
         GetOwnerSidebandDataToken(sidebandId, &sideband_token);
         SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
-        unsigned int* locks = (unsigned int*)sideband_memory;
-        _writeReady = locks;
-        _readReady = locks + 1;
-        sideband_memory += 8;
+        // unsigned int* locks = (unsigned int*)sideband_memory;
+        // //_writeReady = new(locks) SharedAtomic();
+        // _writeReady = reinterpret_cast<volatile int32_t*>(locks);
+        // //_readReady = new (locks + sizeof(SharedAtomic)) SharedAtomic();
+        // _readReady = reinterpret_cast<volatile int32_t*>(locks) + 1;
+        // sideband_memory += sizeof(int32_t) * 2;
 
         while (true)
         {
@@ -487,7 +574,7 @@ public:
             auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
             
             initResult.SerializeToArray(sideband_memory, 4096);
-            SetEvent(_callCompleteEvent);
+            //SetEvent(_callCompleteEvent);
             SignalReady();
         }
     }
@@ -503,7 +590,7 @@ void RunSharedMemoryListener()
     
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void RunServer(const string& certPath, const char* server_address)
+void RunServer(const std::string& certPath, const char* server_address)
 {
     // Init gRPC
     //grpc_init();
@@ -545,7 +632,7 @@ void RunServer(const string& certPath, const char* server_address)
     {
         _inProcServer = server->InProcessChannel(grpc::ChannelArguments());
     }
-	cout << "Server listening on " << server_address << endl;
+	std::cout << "Server listening on " << server_address << std::endl;
 
     auto nextCall = new ReadComplexAsyncCall();
     service.RequestReadComplexArena(&nextCall->_context, &nextCall->_request, &nextCall->_response, cq.get(), cq.get(), nextCall);

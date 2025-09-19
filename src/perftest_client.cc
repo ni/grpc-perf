@@ -393,7 +393,15 @@ int main(int argc, char **argv)
 #ifndef _WIN32    
     sched_param schedParam;
     schedParam.sched_priority = 99;
-    sched_setscheduler(0, SCHED_FIFO, &schedParam);
+    int setSchedResult = sched_setscheduler(0, SCHED_FIFO, &schedParam);
+    if (setSchedResult != 0)
+    {
+        cout << "Failed to set scheduler, are you running as root? Errno: " << errno << endl;
+    }
+    else
+    {
+        cout << "Successfully set scheduler to FIFO with priority " << schedParam.sched_priority << endl;
+    }
 
     // cpu_set_t cpuSet;
     // CPU_ZERO(&cpuSet);
@@ -421,7 +429,7 @@ int main(int argc, char **argv)
     args.SetMaxReceiveMessageSize(10 * 100 * 1024 * 1024);
     args.SetMaxSendMessageSize(10 * 100 * 1024 * 1024);
 #if ENABLE_UDS_TESTS
-    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:Test", creds, args));
+    //auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:Test", creds, args));
 #endif
     string channelTarget = target + ":" + to_string(port);
     std::vector<std::unique_ptr<grpc::experimental::ClientInterceptorFactoryInterface>> interceptor_creators;

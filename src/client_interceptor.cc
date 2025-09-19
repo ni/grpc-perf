@@ -1,3 +1,10 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <atomic>
+#include <sched.h>
+#include <fcntl.h>
 #include <map>
 //#include "absl/log/check.h"
 #include <grpcpp/support/client_interceptor.h>
@@ -5,44 +12,126 @@
 #include <sideband_data.h>
 #include <perftest.pb.h>
 #include <google/protobuf/io/tokenizer.h>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 
-
-static HANDLE StartCallEvent = INVALID_HANDLE_VALUE;
-static HANDLE CallCompleteEvent = INVALID_HANDLE_VALUE;
+//static HANDLE StartCallEvent = INVALID_HANDLE_VALUE;
+//static HANDLE CallCompleteEvent = INVALID_HANDLE_VALUE;
 int64_t sideband_token = 0;
 uint8_t* sideband_memory = nullptr;
-unsigned int* _clientReadReady = nullptr;
-unsigned int* _clientWriteReady = nullptr;
+//SharedAtomic* _clientReadReady = nullptr;
+//SharedAtomic* _clientWriteReady = nullptr;
+//volatile int32_t* _clientReadReady = nullptr;
+//volatile int32_t* _clientWriteReady = nullptr;
+
+//boost::interprocess::named_semaphore StartCallEvent(boost::interprocess::open_or_create, "StartCallEvent", 0);
+//boost::interprocess::named_semaphore CallCompleteEvent(boost::interprocess::open_or_create, "CallCompleteEvent", 0);
 
 class SharedMemoryForwardingInterceptor : public grpc::experimental::Interceptor 
 {    
 public:
+    struct SharedAtomic {
+        std::atomic<int> flag;
+    };
+
+    typedef struct {
+        std::atomic<int> count;
+    } spin_semaphore_t;
+
+    spin_semaphore_t *create_or_open_semaphore(const char *name, int initial_count, int create) {
+        int flags = O_RDWR;
+        if (create) flags |= O_CREAT;
+
+        int fd = shm_open(name, flags, 0666);
+        if (fd == -1) {
+            perror("shm_open");
+            exit(1);
+        }
+
+        if (create) {
+            if (ftruncate(fd, sizeof(spin_semaphore_t)) == -1) {
+                perror("ftruncate");
+                exit(1);
+            }
+        }
+
+        spin_semaphore_t* sem = (spin_semaphore_t*)mmap(NULL, sizeof(spin_semaphore_t),
+                                    PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (sem == MAP_FAILED) {
+            perror("mmap");
+            exit(1);
+        }
+        if (create) {
+            atomic_init(&sem->count, initial_count);
+        }
+        close(fd); // fd no longer needed after mmap
+        return sem;
+    }
+
+    void spin_wait(spin_semaphore_t *sem) {
+        int val;
+        do {
+            while (std::atomic_load_explicit(&sem->count, std::memory_order_relaxed) <= 0)
+                sched_yield();
+            val = std::atomic_fetch_sub_explicit(&sem->count, 1, std::memory_order_acquire);
+        } while (val <= 0);
+    }
+
+    void spin_post(spin_semaphore_t *sem) {
+        std::atomic_fetch_add_explicit(&sem->count, 1, std::memory_order_release);
+    }
+
+    static spin_semaphore_t* _startCallEvent;
+    static spin_semaphore_t* _callCompleteEvent;
+
     SharedMemoryForwardingInterceptor(grpc::experimental::ClientRpcInfo* info) 
     {
         info_ = info;
         if (sideband_token == 0)
         {
-            StartCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
-            CallCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
+            _startCallEvent = create_or_open_semaphore("/StartCallEvent", 0, false);
+            _callCompleteEvent = create_or_open_semaphore("/CallCompleteEvent", 0, false);
+            //StartCallEvent = CreateEvent(nullptr, false, false, "StartCallEvent");
+            //CallCompleteEvent = CreateEvent(nullptr, false, false, "CallCompleteEvent");
             InitClientSidebandData("TestBuffer", SidebandStrategy::SHARED_MEMORY, "TestBuffer", 4096, &sideband_token);
             SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
             unsigned int* locks = (unsigned int*)sideband_memory;
-            _clientWriteReady = locks;
-            _clientReadReady = locks + 1;
-            sideband_memory += 8;
+            //_clientWriteReady = new (locks) SharedAtomic();
+            //_clientWriteReady = reinterpret_cast<volatile int32_t*>(locks);
+            //_clientReadReady = new (locks + sizeof(SharedAtomic)) SharedAtomic();
+            //_clientReadReady = reinterpret_cast<volatile int32_t*>(locks) + 1;
+            //sideband_memory += sizeof(int32_t) * 2;
         }
     }
 
     void SignalReady()
     {
+        //std::cout << "Signaling call starting" << std::endl;
         //SetEvent(StartCallEvent);
-        InterlockedExchange(_clientWriteReady, 1);
+        //InterlockedExchange(_clientWriteReady, 1);
+        //_clientWriteReady->flag.store(1, std::memory_order_release);
+        //*_clientWriteReady = 1;
+        //StartCallEvent.post();
+        spin_post(_startCallEvent);
+        //std::cout << "Done signaling call starting" << std::endl;
     }
 
     void WaitForReadReady()
     {
+        //std::cout << "Waiting for call result" << std::endl;
         //WaitForSingleObject(CallCompleteEvent, INFINITE);
-        while (InterlockedCompareExchange(_clientReadReady, 0, 1) == 0);
+        //while (InterlockedCompareExchange(_clientReadReady, 0, 1) == 0);
+        // int expected = 1;
+        // do { expected = 1; _clientReadReady->flag.compare_exchange_strong(expected, 0); } while (expected == 0);
+        // while (*_clientReadReady == 0) 
+        // {
+        //     // Spin until the read is ready
+        //     //std::this_thread::yield();
+        // }
+        // *_clientReadReady = 0;
+        //std::cout << "Call result received" << std::endl;
+        //CallCompleteEvent.wait();
+        spin_wait(_callCompleteEvent);
+        //std::cout << "Done waiting for call result" << std::endl;
     }
 
     void Intercept(::grpc::experimental::InterceptorBatchMethods* methods) override 
@@ -125,6 +214,9 @@ public:
     //std::map<std::string, std::string> cached_map_;
     //std::string response_;
 };
+
+SharedMemoryForwardingInterceptor::spin_semaphore_t* SharedMemoryForwardingInterceptor::_startCallEvent;
+SharedMemoryForwardingInterceptor::spin_semaphore_t* SharedMemoryForwardingInterceptor::_callCompleteEvent;
 
 grpc::experimental::Interceptor* SharedMemoryForwardingInterceptorFactory::CreateClientInterceptor(grpc::experimental::ClientRpcInfo* info)
 {
