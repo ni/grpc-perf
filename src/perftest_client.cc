@@ -604,7 +604,11 @@ int main(int argc, char **argv)
     args.SetMaxReceiveMessageSize(10 * 100 * 1024 * 1024);
     args.SetMaxSendMessageSize(10 * 100 * 1024 * 1024);
 #if ENABLE_UDS_TESTS
-    auto udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:///tmp/perftest", creds, args));
+    // Only create UDS client if UDS tests are enabled in configuration
+    NIPerfTestClient* udsClient = nullptr;
+    if (test_config.uds_tests.enabled) {
+        udsClient = new NIPerfTestClient(grpc::CreateCustomChannel("unix:///tmp/perftest", creds, args));
+    }
 #endif
     string channelTarget = target + ":" + to_string(port);
     auto client = new NIPerfTestClient(grpc::CreateCustomChannel(channelTarget, creds, args));
@@ -621,17 +625,19 @@ int main(int argc, char **argv)
     {
         cout << "Init result: " << result << endl;
     }
-    // Verify the client is working correctly
+    // Verify the UDS client is working correctly (only if UDS tests are enabled)
 #if ENABLE_UDS_TESTS
-    result = udsClient->Init(42);
-    if (result != 42)
-    {
-        cout << "Server UDS communication failure!" << endl;
-        return -1;
-    }
-    else
-    {
-        cout << "Init result: " << result << endl;
+    if (udsClient != nullptr) {
+        result = udsClient->Init(42);
+        if (result != 42)
+        {
+            cout << "Server UDS communication failure!" << endl;
+            return -1;
+        }
+        else
+        {
+            cout << "UDS Init result: " << result << endl;
+        }
     }
 #endif
 
