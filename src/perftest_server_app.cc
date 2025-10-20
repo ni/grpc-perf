@@ -102,6 +102,7 @@ int main(int argc, char **argv)
     threads.push_back(udsT);
 #endif
 
+    std::cout << "Starting shared memory listener" << std::endl;
     auto sharedMemoryThread = std::thread(RunSharedMemoryListener);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));

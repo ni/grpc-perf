@@ -37,6 +37,8 @@
 //#include <sched.h>
 #endif
 
+#include "iox2/iceoryx2.hpp"
+
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 using grpc::Server;
@@ -437,116 +439,26 @@ void ReadComplexAsyncCall::HandleCall(bool ok)
     }
 }
 
-#define SHM_NAME "/my_spin_semaphore"
-
-typedef struct {
-    std::atomic<int> count;
-} spin_semaphore_t;
-
-spin_semaphore_t *create_or_open_semaphore(const char *name, int initial_count, int create) {
-    int flags = O_RDWR;
-    if (create) flags |= O_CREAT;
-
-    int fd = shm_open(name, flags, 0666);
-    if (fd == -1) {
-        perror("shm_open");
-        exit(1);
-    }
-
-    if (create) {
-        if (ftruncate(fd, sizeof(spin_semaphore_t)) == -1) {
-            perror("ftruncate");
-            exit(1);
-        }
-    }
-
-    spin_semaphore_t* sem = (spin_semaphore_t*)mmap(NULL, sizeof(spin_semaphore_t),
-                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (sem == MAP_FAILED) {
-        perror("mmap");
-        exit(1);
-    }
-    if (create) {
-        atomic_init(&sem->count, initial_count);
-    }
-    close(fd); // fd no longer needed after mmap
-    return sem;
-}
-
-void spin_wait(spin_semaphore_t *sem) {
-    int val;
-    do {
-        while (std::atomic_load_explicit(&sem->count, std::memory_order_relaxed) <= 0)
-            sched_yield();
-        val = std::atomic_fetch_sub_explicit(&sem->count, 1, std::memory_order_acquire);
-    } while (val <= 0);
-}
-
-void spin_post(spin_semaphore_t *sem) {
-    std::atomic_fetch_add_explicit(&sem->count, 1, std::memory_order_release);
-}
-
-// struct SharedAtomic {
-//     std::atomic<int> flag;
-// };
-
-// boost::interprocess::named_semaphore _startCallEvent(boost::interprocess::open_or_create, "StartCallEvent", 0);
-// boost::interprocess::named_semaphore _callCompleteEvent(boost::interprocess::open_or_create, "CallCompleteEvent", 0);
+struct MinimalPayload {
+   uint8_t buffer[512];
+   int32_t data;
+};
 
 class SharedMemoryListener
 {
-    volatile int32_t* _readReady = nullptr;
-    volatile int32_t* _writeReady = nullptr;
-    // SharedAtomic* _readReady = nullptr;
-    // SharedAtomic* _writeReady = nullptr;
-    //HANDLE _startCallEvent;
-    //HANDLE _callCompleteEvent;
-    spin_semaphore_t* _startCallEvent = nullptr;
-    spin_semaphore_t* _callCompleteEvent = nullptr;
-
-    void SignalReady()
-    {
-        //SetEvent(_callCompleteEvent);
-        //InterlockedExchange(_readReady, 1);
-        //_readReady->flag.store(1, std::memory_order_release);
-        //*_readReady = 1;
-        //_callCompleteEvent.post();
-        spin_post(_callCompleteEvent);
-    }
-
-    void WaitForReadReady()
-    {
-        //std::cout << "Waiting for call start" << std::endl;
-        //WaitForSingleObject(startCallEvent, INFINITE);
-        // int expected = 1;
-        // do { expected = 1; _writeReady->flag.compare_exchange_strong(expected, 0); } while (expected == 0);
-        // while (*_writeReady == 0)
-        // {
-        //     // Spin until the write is ready
-        //     //std::this_thread::yield();
-        // }
-        // *_writeReady = 0;
-        //std::cout << "Call started" << std::endl;
-        //while (InterlockedCompareExchange(_writeReady, 0, 1) == 0);
-        //_startCallEvent.wait();
-        spin_wait(_startCallEvent);
-    }
-
 public:
     SharedMemoryListener()
     {    
-        _startCallEvent = create_or_open_semaphore("/StartCallEvent", 0, true);
-        _callCompleteEvent = create_or_open_semaphore("/CallCompleteEvent", 0, true);
     }
 
     void Run()
     {
-        int64_t sideband_token = 0;
-        uint8_t* sideband_memory = nullptr;
-        char sidebandId[32];
-        InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
-        GetOwnerSidebandDataToken(sidebandId, &sideband_token);
-        SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
+        // int64_t sideband_token = 0;
+        // uint8_t* sideband_memory = nullptr;
+        // char sidebandId[32];
+        // InitOwnerSidebandData(::SidebandStrategy::SHARED_MEMORY, 4096, sidebandId);
+        // GetOwnerSidebandDataToken(sidebandId, &sideband_token);
+        // SidebandData_BeginDirectWrite(sideband_token, &sideband_memory);
         // unsigned int* locks = (unsigned int*)sideband_memory;
         // //_writeReady = new(locks) SharedAtomic();
         // _writeReady = reinterpret_cast<volatile int32_t*>(locks);
@@ -556,26 +468,75 @@ public:
 
         while (true)
         {
-            WaitForReadReady();
-            auto packedRequest = sideband_memory;
-            auto methodLen = *(int32_t*)packedRequest;
-            packedRequest += 4;
-            std::string methodName((char*)packedRequest, methodLen);
-            packedRequest += methodLen;
-            auto requestLen = *(int32_t*)packedRequest;
-            packedRequest += 4;
+            // WaitForReadReady();
+            // auto packedRequest = sideband_memory;
+            // auto methodLen = *(int32_t*)packedRequest;
+            // packedRequest += 4;
+            // std::string methodName((char*)packedRequest, methodLen);
+            // packedRequest += methodLen;
+            // auto requestLen = *(int32_t*)packedRequest;
+            // packedRequest += 4;
 
-            grpc::internal::RpcMethod method(methodName.c_str(), grpc::internal::RpcMethod::NORMAL_RPC);
-            ClientContext context;
+            // grpc::internal::RpcMethod method(methodName.c_str(), grpc::internal::RpcMethod::NORMAL_RPC);
+            // ClientContext context;
 
-            InitParameters request;
-            request.ParseFromArray(packedRequest, (int)requestLen);
-            InitResult initResult;
-            auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
+            // InitParameters request;
+            // request.ParseFromArray(packedRequest, (int)requestLen);
+            // InitResult initResult;
+            // auto Status = grpc::internal::BlockingUnaryCall(_inProcServer.get(), method, &context, request, &initResult);
             
-            initResult.SerializeToArray(sideband_memory, 4096);
-            //SetEvent(_callCompleteEvent);
-            SignalReady();
+            // initResult.SerializeToArray(sideband_memory, 4096);
+            // //SetEvent(_callCompleteEvent);
+            // SignalReady();
+
+            std::cout << "Creating node and service" << std::endl;
+            auto node = iox2::NodeBuilder().create<iox2::ServiceType::Ipc>().expect("successful node creation");
+
+            auto service = node.service_builder(iox2::ServiceName::create("GRPCBenchmarkService").expect("valid service name"))
+                            .request_response<MinimalPayload, MinimalPayload>()
+                            //.max_response_buffer_size(1)  // Minimize buffer size
+                            .open_or_create()
+                            .expect("successful service creation/opening");
+
+            auto server = service.server_builder().create().expect("successful server creation");
+
+            // Tight loop for maximum performance - no sleeps, no console output
+            std::string methodName = "";
+            InitParameters request;
+            auto inProcServer = _inProcServer.get();
+            while (true) {
+                auto active_request = server.receive().expect("receive successful");
+                if (active_request.has_value()) {
+                    auto packedRequest = active_request->payload().buffer;
+                    if (methodName == "")
+                    {
+                        auto methodLen = *(int32_t*)packedRequest;
+                        packedRequest += 4;
+                        methodName = std::string((char*)packedRequest, methodLen);
+                        packedRequest += methodLen;
+                        auto requestLen = *(int32_t*)packedRequest;
+                        packedRequest += 4;
+                        request.ParseFromArray(packedRequest, (int)requestLen);
+                    }
+
+                    grpc::internal::RpcMethod method(methodName.c_str(), grpc::internal::RpcMethod::NORMAL_RPC);
+
+                    InitResult initResult;
+                    initResult.set_status(request.id());
+                    ClientContext context;
+                    auto Status = grpc::internal::BlockingUnaryCall(inProcServer, method, &context, request, &initResult);
+
+                    MinimalPayload sideband_memory;
+                    initResult.SerializeToArray(sideband_memory.buffer, 4096);
+
+                    // Use zero-copy API exclusively for maximum performance
+                    auto response = active_request->loan_uninit().expect("loan successful");
+                    auto initialized_response = response.write_payload(std::move(sideband_memory));
+                    send(std::move(initialized_response)).expect("send successful");
+                }
+                // No break condition - run until killed for benchmarking
+            }
+
         }
     }
 };

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
-option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" ON)
+option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
 option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" OFF)
 
@@ -16,7 +16,7 @@ set(ABSL_ENABLE_INSTALL OFF)
 FetchContent_Declare(
   gRPC
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.68.2
+  GIT_TAG        v1.70.1
 )
 FetchContent_MakeAvailable(gRPC)
 
@@ -27,6 +27,26 @@ FetchContent_Declare(
   GIT_TAG        v3.2.0
 )
 FetchContent_MakeAvailable(cxxopts)
+
+# cxxopts components
+FetchContent_Declare(
+  cxxopts
+  GIT_REPOSITORY https://github.com/jarro2783/cxxopts
+  GIT_TAG        v3.2.0
+)
+FetchContent_MakeAvailable(cxxopts)
+
+# iceoryx2
+FetchContent_Declare(
+    iceoryx2
+    GIT_REPOSITORY https://github.com/eclipse-iceoryx/iceoryx2.git
+    GIT_TAG v0.7.0
+)
+
+set(BUILD_EXAMPLES OFF)
+set(BUILD_TESTING OFF)
+
+FetchContent_MakeAvailable(iceoryx2)
 
 # grpc-sideband components
 if (INCLUDE_GRPC_SIDEBAND)
@@ -146,6 +166,7 @@ if (INCLUDE_GRPC_SIDEBAND)
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     ${DETOURS_LIB}
+    iceoryx2-cxx::static-lib-cxx
     )
 else()
   target_link_libraries(perftest_server
@@ -153,6 +174,7 @@ else()
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     ${DETOURS_LIB}
+    iceoryx2-cxx::static-lib-cxx
     )
 endif()
 
@@ -176,6 +198,7 @@ if (INCLUDE_GRPC_SIDEBAND)
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     ${DETOURS_LIB}
+    iceoryx2-cxx::static-lib-cxx
     )
 else()
   target_link_libraries(local_perf_check
@@ -183,6 +206,7 @@ else()
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     ${DETOURS_LIB}
+    iceoryx2-cxx::static-lib-cxx
     )
 endif()
 install(FILES $<TARGET_RUNTIME_DLLS:local_perf_check> TYPE BIN)
@@ -204,11 +228,13 @@ if (INCLUDE_GRPC_SIDEBAND)
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
+    iceoryx2-cxx::static-lib-cxx
     )
 else()
   target_link_libraries(perftest_client
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
+    iceoryx2-cxx::static-lib-cxx
     )
 endif()
