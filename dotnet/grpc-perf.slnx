@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="global.json" />
+    <File Path="test_integration.sh" />
+    <File Path="../perftest.proto" />
+    <File Path="../data_moniker.proto" />
+  </Folder>
+  <Folder Name="/Server/">
+    <Project Path="PerfTestServer/PerfTestServer.csproj" />
+  </Folder>
+  <Folder Name="/Client/">
+    <Project Path="PerfTestClient/PerfTestClient.csproj" />
+  </Folder>
+</Solution>
