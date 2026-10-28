@@ -1,7 +1,9 @@
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
 #include "client_utilities.h"
+#include <algorithm>
 #include <fstream>
+#include <iomanip>
 
 using namespace std;
 
@@ -231,42 +233,50 @@ MonikerClient::MonikerClient(std::shared_ptr<Channel> channel)
 void WriteLatencyData(timeVector times, const string& fileName)
 {
     auto iterations = times.size();
+    if (iterations == 0)
+    {
+        cout << "No latency samples recorded" << endl;
+        return;
+    }
 
     {
         std::ofstream fout;
         fout.open("xaxis");
         for (int x=0; x<iterations; ++x)
         {
-            fout << (x+1) << std::endl;
+            fout << (x+1) << '\n';
         }
         fout.close();
     }
 
+    auto toUs = [](std::chrono::nanoseconds t) { return t.count() / 1000.0; };
+
     {
         std::ofstream fout;
         fout.open(fileName);
+        fout << std::fixed << std::setprecision(3);
         for (auto i : times)
         {
-            fout << i.count() << std::endl;
+            fout << toUs(i) << '\n';
         }
         fout.close();
     }
 
     std::sort(times.begin(), times.end());
-    auto min = times.front();
-    auto max = times.back();
-    auto median = *(times.begin() + iterations / 2);
-    
-    double average = times.front().count();
-    for (auto i : times)
-        average += (double)i.count();
-    average = average / iterations;
+    auto percentile = [&](double p) { return toUs(times[(std::min)(iterations - 1, (size_t)(p * iterations))]); };
 
-    cout << "End Test" << endl;
-    cout << "Min: " << min.count() << endl;
-    cout << "Max: " << max.count() << endl;
-    cout << "Median: " << median.count() << endl;
-    cout << "Average: " << average << endl;
+    double total = 0;
+    for (auto i : times)
+        total += toUs(i);
+
+    cout << "End Test (microseconds)" << endl;
+    cout << "Min: " << toUs(times.front()) << endl;
+    cout << "Max: " << toUs(times.back()) << endl;
+    cout << "Median: " << percentile(0.5) << endl;
+    cout << "Average: " << total / iterations << endl;
+    cout << "P90: " << percentile(0.90) << endl;
+    cout << "P99: " << percentile(0.99) << endl;
+    cout << "P99.9: " << percentile(0.999) << endl;
     cout << endl;
 }
 

@@ -446,11 +446,11 @@ void RunConfiguredTests(const TestConfig& config, NIPerfTestClient& client,
             {
                 if (strategy_str == "SOCKETS_LOW_LATENCY")
                 {
-                    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY);
+                    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::SOCKETS_LOW_LATENCY, config.sideband_tests.latency_iterations);
                 }
                 else if (strategy_str == "RDMA_LOW_LATENCY")
                 {
-                    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY);
+                    PerformSidebandMonikerLatencyTest(*monikerClient, 1, ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY, config.sideband_tests.latency_iterations);
                 }
             }
         }

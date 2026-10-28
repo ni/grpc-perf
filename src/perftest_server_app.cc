@@ -28,10 +28,10 @@ void InitDetours();
 void RunServer(const std::string& certPath, const char* server_address);
 
 #if ENABLE_GRPC_SIDEBAND
-void RunAccept()
+void RunAccept(std::string address)
 {
-    std::atomic_bool stop;
-    RunSidebandSocketsAccept("localhost", 50055, stop);
+    std::atomic_bool stop{false};
+    RunSidebandSocketsAccept(address.c_str(), 50055, stop);
 }
 #endif
 
@@ -40,6 +40,7 @@ int main(int argc, char **argv)
     cxxopts::Options options("perftest_server", "gRPC server for testing various aspects of gRPC performance");
     options.add_options()
       ("c,cert", "path to the certificate file to be used", cxxopts::value<std::string>()->default_value(""))
+      ("sideband-address", "host/IP clients use to reach the sideband socket (advertised to clients; listener binds all interfaces)", cxxopts::value<std::string>()->default_value("localhost"))
       ("h,help", "show usage")
       ;
 
@@ -102,7 +103,7 @@ int main(int argc, char **argv)
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND
-    auto t = new std::thread(RunAccept);
+    auto t = new std::thread(RunAccept, parse_result["sideband-address"].as<std::string>());
     threads.push_back(t);
 
     auto t2 = new std::thread(AcceptSidebandRdmaReceiveRequests);

@@ -84,7 +84,8 @@ The configuration file uses JSON format and allows you to enable/disable various
     "sideband_tests": {
         "enabled": false,
         "buffer_sizes": [4194304],          // Buffer sizes in bytes (4MB default)
-        "strategies": ["SOCKETS", "RDMA"]   // Available: SOCKETS, RDMA, SOCKETS_LOW_LATENCY, RDMA_LOW_LATENCY
+        "strategies": ["SOCKETS", "RDMA"],  // Available: SOCKETS, RDMA, SOCKETS_LOW_LATENCY, RDMA_LOW_LATENCY
+        "latency_iterations": 100          // Round trips measured by the *_LOW_LATENCY tests
     }
 }
 ```

@@ -41,6 +41,7 @@ struct SidebandTestConfig
     bool enabled;
     std::vector<int> buffer_sizes;
     std::vector<std::string> strategies;
+    int latency_iterations = 100;
 };
 
 struct PackingTestConfig

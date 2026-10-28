@@ -2,12 +2,16 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(grpc-perf C CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+
 option(INCLUDE_GRPC_SIDEBAND "Include support for profiling gprc sideband tests" OFF)
 option(INCLUDE_FLAATBUFFERS "Include support for profiling Flatbuffers" OFF)
 option(INCLUDE_UDS_TESTS "Include support for testing performance over UDS (Unix Domain Sockets)" ON)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
+# Let option() in fetched projects honor the variables set below
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(protobuf_INSTALL OFF)
 set(utf8_range_ENABLE_INSTALL OFF)
 set(ABSL_ENABLE_INSTALL OFF)
@@ -221,4 +225,11 @@ else()
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     )
+endif()
+
+if (INCLUDE_GRPC_SIDEBAND AND WIN32)
+  foreach(target perftest_server perftest_client local_perf_check)
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:ni_grpc_sideband> $<TARGET_FILE_DIR:${target}>)
+  endforeach()
 endif()

@@ -83,6 +83,7 @@ bool TestConfig::LoadFromFile(const string& filename)
             sideband_tests.enabled = sideband_config.value("enabled", false);
             sideband_tests.buffer_sizes = sideband_config.value("buffer_sizes", vector<int>{4 * 1024 * 1024});
             sideband_tests.strategies = sideband_config.value("strategies", vector<string>{"SOCKETS", "RDMA"});
+            sideband_tests.latency_iterations = sideband_config.value("latency_iterations", 100);
         }
 
         // Load packing test configuration
@@ -164,7 +165,8 @@ bool TestConfig::SaveDefaultToFile(const string& filename)
         config_json["sideband_tests"] = {
             {"enabled", false},
             {"buffer_sizes", vector<int>{4 * 1024 * 1024}},
-            {"strategies", vector<string>{"SOCKETS", "RDMA"}}
+            {"strategies", vector<string>{"SOCKETS", "RDMA"}},
+            {"latency_iterations", 100}
         };
 
         // Packing tests
@@ -225,6 +227,7 @@ void TestConfig::SetDefaults()
     sideband_tests.enabled = false;
     sideband_tests.buffer_sizes = {4 * 1024 * 1024};
     sideband_tests.strategies = {"SOCKETS", "RDMA"};
+    sideband_tests.latency_iterations = 100;
 
     packing_tests.enabled = false;
     packing_tests.sample_counts = {1000, 10000, 100000};

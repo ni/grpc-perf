@@ -30,7 +30,7 @@ void RunServer(const std::string& certPath, const char* server_address);
 #if ENABLE_GRPC_SIDEBAND
 void RunAccept()
 {
-    std::atomic_bool stop;
+    std::atomic_bool stop{false};
     RunSidebandSocketsAccept("localhost", 50055, stop);
 }
 #endif
@@ -89,7 +89,6 @@ int main(int argc, char **argv)
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 #if ENABLE_GRPC_SIDEBAND
-    std::atomic_bool stop;
     auto t = new std::thread(RunAccept);
     threads.push_back(t);
 

@@ -796,7 +796,7 @@ void PerformAsyncInitTest(NIPerfTestClient& client, int numCommands, int numIter
     auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
 
     double msgsPerSecond = (numCommands * numIterations * 1000.0 * 1000.0) / (double)elapsed.count();
-    double timePerMessage = elapsed.count() / (numCommands * numIterations);
+    double timePerMessage = (double)elapsed.count() / (numCommands * numIterations);
     cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl << endl;
 }
 
@@ -827,14 +827,19 @@ void PerformScopeLikeRead(NIPerfTestClient& client)
 #if (ENABLE_GRPC_SIDEBAND)
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSamples, ni::data_monikers::SidebandStrategy strategy)
+void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSamples, ni::data_monikers::SidebandStrategy strategy, int iterations)
 {
-    std::cout << "Start Sideband moniker latency test, "  << numSamples << " Samples" << std::endl;
+    std::cout << "Start Sideband moniker latency test, "  << numSamples << " Samples, " << iterations << " iterations" << std::endl;
     ClientContext ctx;
     BeginMonikerSidebandStreamRequest request;
     request.set_strategy(strategy);
     BeginMonikerSidebandStreamResponse response;
-    client->_stub->BeginSidebandStream(&ctx, request, &response);
+    auto beginStatus = client->_stub->BeginSidebandStream(&ctx, request, &response);
+    if (!beginStatus.ok())
+    {
+        std::cout << "BeginSidebandStream failed: " << beginStatus.error_message() << std::endl;
+        return;
+    }
 
 #ifndef _WIN32
     if (strategy == ni::data_monikers::SidebandStrategy::RDMA_LOW_LATENCY ||
@@ -850,7 +855,7 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
 #endif
 
     timeVector times;
-    times.reserve(10000);
+    times.reserve(iterations);
 
     auto sidebandToken = InitClientSidebandData(response);
 
@@ -865,21 +870,27 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
     auto value = sidebandRequest.mutable_values()->add_values();
     value->PackFrom(toPack);
 
-    MonikerReadResult sidebandResponse;
+    SidebandReadResponse sidebandResponse;
     for (int x=0; x<10; ++x)
     {
         WriteSidebandMessage(sidebandToken, sidebandRequest);
         ReadSidebandMessage(sidebandToken, &sidebandResponse);
     }
 
-    for (int x=0; x<100; ++x)
+    for (int x=0; x<iterations; ++x)
     {
-        auto start = chrono::high_resolution_clock::now();
+        auto start = chrono::steady_clock::now();
         WriteSidebandMessage(sidebandToken, sidebandRequest);
-        ReadSidebandMessage(sidebandToken, &sidebandResponse);
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-        times.emplace_back(elapsed);
+        bool readOk = ReadSidebandMessage(sidebandToken, &sidebandResponse);
+        auto end = chrono::steady_clock::now();
+        // A dropped socket parses as an empty message rather than failing the read
+        if (!readOk || sidebandResponse.values().values_size() != 1)
+        {
+            std::cout << "Sideband round trip failed at iteration " << x << "; discarding results" << std::endl;
+            CloseSidebandData(sidebandToken);
+            return;
+        }
+        times.emplace_back(chrono::duration_cast<chrono::nanoseconds>(end - start));
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
     }
     sidebandRequest.set_cancel(true);
@@ -892,9 +903,9 @@ void ThreadPerformSidebandMonikerLatencyTest(MonikerClient* client, int numSampl
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy)
+void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy, int iterations)
 {
-    auto thread = new std::thread(ThreadPerformSidebandMonikerLatencyTest, &client, numSamples, strategy);
+    auto thread = new std::thread(ThreadPerformSidebandMonikerLatencyTest, &client, numSamples, strategy, iterations);
     thread->join();
 }
 
@@ -904,7 +915,8 @@ void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_
 {
     cout << "Start Sideband Read Test " << message << endl;
 
-    uint8_t* buffer = new uint8_t[numSamples];
+    std::vector<uint8_t> bufferStorage(numSamples);
+    uint8_t* buffer = bufferStorage.data();
     BeginTestSidebandStreamResponse response;
     {
         ClientContext context;
@@ -989,12 +1001,16 @@ void PerformLatencyStreamTest(NIPerfTestClient& client, std::string fileName)
     {
         TraceMarker("Start iteration");
         //clientData.set_message(x);
-        auto start = chrono::high_resolution_clock::now();
+        auto start = chrono::steady_clock::now();
         stream->Write(clientData);
-        stream->Read(&serverData);
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-        times.emplace_back(elapsed);
+        bool ok = stream->Read(&serverData);
+        auto end = chrono::steady_clock::now();
+        if (!ok)
+        {
+            cout << "Stream closed at iteration " << x << "; discarding results" << endl;
+            return;
+        }
+        times.emplace_back(chrono::duration_cast<chrono::nanoseconds>(end - start));
         // if (elapsed.count() > 200)
         // {
         //     TraceMarker("High Latency");
@@ -1041,12 +1057,16 @@ void PerformLatencyPayloadWriteTest(NIPerfTestClient& client, int numSamples, st
     for (int x=0; x<LatencyTestIterations; ++x)
     {
         TraceMarker("Start iteration");
-        auto start = chrono::high_resolution_clock::now();
+        auto start = chrono::steady_clock::now();
         ClientContext context;
-        client._stub->TestWrite(&context, request, &reply);
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-        times.emplace_back(elapsed);
+        auto status = client._stub->TestWrite(&context, request, &reply);
+        auto end = chrono::steady_clock::now();
+        if (!status.ok())
+        {
+            cout << "TestWrite failed at iteration " << x << ": " << status.error_message() << "; discarding results" << endl;
+            return;
+        }
+        times.emplace_back(chrono::duration_cast<chrono::nanoseconds>(end - start));
     }
     WriteLatencyData(times, fileName);
 }
@@ -1077,12 +1097,16 @@ void PerformLatencyPayloadWriteStreamTest(NIPerfTestClient& client, int numSampl
     for (int x=0; x<LatencyTestIterations; ++x)
     {
         TraceMarker("Start iteration");
-        auto start = chrono::high_resolution_clock::now();
+        auto start = chrono::steady_clock::now();
         stream->Write(request);
-        stream->Read(&reply);
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-        times.emplace_back(elapsed);
+        bool ok = stream->Read(&reply);
+        auto end = chrono::steady_clock::now();
+        if (!ok)
+        {
+            cout << "Stream closed at iteration " << x << "; discarding results" << endl;
+            return;
+        }
+        times.emplace_back(chrono::duration_cast<chrono::nanoseconds>(end - start));
     }
     WriteLatencyData(times, fileName);
 }
@@ -1134,18 +1158,24 @@ void PerformLatencyStreamTest2(NIPerfTestClient& client, NIPerfTestClient& clien
     }
     for (int x=0; x<LatencyTestIterations; ++x)
     {
-        auto start = chrono::high_resolution_clock::now();
+        auto start = chrono::steady_clock::now();
         for (int i=0; i<streamCount; ++i)
         {
             streamInfos[i].wstream->Write(streamInfos[i].clientData);
         }
+        bool ok = true;
         for (int i=0; i<streamCount; ++i)
         {
-            streamInfos[i].rstream->Read(&serverData);
+            ok &= streamInfos[i].rstream->Read(&serverData);
         }
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-        times.emplace_back(elapsed);
+        auto end = chrono::steady_clock::now();
+        if (!ok)
+        {
+            cout << "Stream closed at iteration " << x << "; discarding results" << endl;
+            delete [] streamInfos;
+            return;
+        }
+        times.emplace_back(chrono::duration_cast<chrono::nanoseconds>(end - start));
     }
 
     for (int x=0; x<streamCount; ++x)
@@ -1179,12 +1209,16 @@ void PerformMessageLatencyTest(NIPerfTestClient& client, std::string fileName)
     }
     for (int x=0; x<LatencyTestIterations; ++x)
     {
-        auto start = chrono::high_resolution_clock::now();
+        auto start = chrono::steady_clock::now();
         ClientContext context;
-        client._stub->Init(&context, request, &reply);
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
-        times.emplace_back(elapsed);
+        auto status = client._stub->Init(&context, request, &reply);
+        auto end = chrono::steady_clock::now();
+        if (!status.ok())
+        {
+            cout << "Init failed at iteration " << x << ": " << status.error_message() << "; discarding results" << endl;
+            return;
+        }
+        times.emplace_back(chrono::duration_cast<chrono::nanoseconds>(end - start));
     }
     WriteLatencyData(times, fileName);
 }
@@ -1206,7 +1240,7 @@ void PerformReadTest(NIPerfTestClient& client, int numSamples, int numIterations
     auto end = chrono::high_resolution_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
     double msgsPerSecond = (numIterations * 1000.0 * 1000.0) / (double)elapsed.count();
-    double timePerMessage = elapsed.count() / numIterations;
+    double timePerMessage = (double)elapsed.count() / numIterations;
 
     delete [] samples;
     cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl;
@@ -1230,7 +1264,7 @@ void PerformReadComplexTest(NIPerfTestClient& client, int numSamples, int numIte
     auto end = chrono::high_resolution_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
     double msgsPerSecond = (numIterations * 1000.0 * 1000.0) / (double)elapsed.count();
-    double timePerMessage = elapsed.count() / numIterations;
+    double timePerMessage = (double)elapsed.count() / numIterations;
 
     cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl;
     ReportMBPerSecond(start, end, numSamples, numIterations);
@@ -1253,7 +1287,7 @@ void PerformReadComplexArenaTest(NIPerfTestClient& client, int numSamples, int n
     auto end = chrono::high_resolution_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(end - start);
     double msgsPerSecond = (numIterations * 1000.0 * 1000.0) / (double)elapsed.count();
-    double timePerMessage = elapsed.count() / numIterations;
+    double timePerMessage = (double)elapsed.count() / numIterations;
 
     cout << "Result: " << msgsPerSecond << " reads per second, Microseconds per read: " << timePerMessage << endl;
     ReportMBPerSecond(start, end, numSamples, numIterations);

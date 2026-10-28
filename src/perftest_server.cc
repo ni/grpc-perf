@@ -44,10 +44,6 @@ using namespace ni::data_monikers;
 
 //---------------------------------------------------------------------
 //---------------------------------------------------------------------
-using timeVector = vector<chrono::microseconds>;
-
-//---------------------------------------------------------------------
-//---------------------------------------------------------------------
 static ::grpc::ServerWriter<niPerfTest::StreamLatencyServer>* _writers [32];
 
 //---------------------------------------------------------------------
@@ -229,12 +225,20 @@ Status NIPerfTestServer::BeginTestSidebandStream(ServerContext* context, const n
 //---------------------------------------------------------------------
 Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::ServerReaderWriter<niPerfTest::TestSidebandStreamResponse, niPerfTest::TestSidebandStreamRequest>* stream)
 {
-    uint8_t* buffer = new uint8_t[16 * 1024 * 1024];
+    const int64_t maxBytes = 16 * 1024 * 1024;
+    std::vector<uint8_t> bufferStorage(maxBytes);
+    uint8_t* buffer = bufferStorage.data();
     TestSidebandStreamRequest request;
     bool firstWrite = true;
     int64_t sidebandToken = 0;
+    Status result = Status::OK;
     while (stream->Read(&request))
     {
+        if (request.num_samples() < 0 || request.num_samples() > maxBytes)
+        {
+            result = Status(grpc::StatusCode::INVALID_ARGUMENT, "num_samples must be between 0 and 16 MB");
+            break;
+        }
         TestSidebandStreamResponse response;
         if (sidebandToken == 0)
         {
@@ -265,8 +269,11 @@ Status NIPerfTestServer::TestSidebandStream(ServerContext* context, grpc::Server
                 break;
         }
     }
-    CloseSidebandData(sidebandToken);
-    return Status::OK;
+    if (sidebandToken != 0)
+    {
+        CloseSidebandData(sidebandToken);
+    }
+    return result;
 }
 
 //---------------------------------------------------------------------
@@ -288,6 +295,11 @@ void RunSidebandReadWriteLoop(const char* sidebandIdentifier, ::SidebandStrategy
             break;
         }
         if (request.cancel())
+        {
+            break;
+        }
+        // A dropped socket parses as an empty message rather than failing the read
+        if (request.values().values_size() == 0)
         {
             break;
         }
@@ -463,6 +475,11 @@ void RunServer(const string& certPath, const char* server_address)
 
 	// Assemble the server.
 	auto server = builder.BuildAndStart();
+	if (!server)
+	{
+		cout << "Failed to start server on " << server_address << endl;
+		return;
+	}
 	_inProcServer = server->InProcessChannel(grpc::ChannelArguments());
 	cout << "Server listening on " << server_address << endl;
 

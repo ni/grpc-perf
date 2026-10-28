@@ -45,5 +45,5 @@ void PerformFlatbuffersPackUnpackLidarTest(int numSamples, int numIterations);
 
 #if ENABLE_GRPC_SIDEBAND
 void PerformSidebandReadTest(NIPerfTestClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy, const std::string& message);
-void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy);
+void PerformSidebandMonikerLatencyTest(MonikerClient& client, int numSamples, ni::data_monikers::SidebandStrategy strategy, int iterations = 100);
 #endif
